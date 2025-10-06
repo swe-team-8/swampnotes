@@ -205,3 +205,15 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Custom .gitignore list (anything missed above)
+node_modules
+.next
+__pycache__/
+*.pyc
+.venv
+.env
+.env.*
+dist
+.coverage
+.pytest_cache
