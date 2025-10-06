@@ -19,3 +19,16 @@ Congratulations you have all the requirements installed
 ctrl + shift + p -> Python:Select Interpreter
 .\apps\api\.venv\Scripts\python.exe # Select this one or wherever python.exe lives within your venv
 
+What else should you install?
+vscode extensions (recommended): ESlint, Prettier, Tailwind CSS Intellisense, Python, Ruff, Even Better TOML
+
+-git
+-Node 20 LTS (20.18.1)
+-nvm if you need to hop between node versions
+-pnpm (package manager)
+-npm (11.6.1) 
+-Docker Desktop
+-openssl
+-AWS CLI
+-PostgreSQL (version 18)
+

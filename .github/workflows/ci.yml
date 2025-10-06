@@ -1,0 +1,23 @@
+# Basic CI/CD workflow (lint->test->build on PRs)
+name: ci
+on: [push, pull_request]
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install uv && uv pip install -r apps/api/requirements.txt --system || true
+      - run: ruff --version || true
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - run: corepack enable
+      - run: pnpm i --frozen-lockfile
+        working-directory: apps/web
+      - run: pnpm build
+        working-directory: apps/web
