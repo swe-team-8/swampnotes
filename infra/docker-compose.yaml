@@ -2,8 +2,8 @@ services:
   db:
     image: postgres:18
     environment:
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD: app
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
       POSTGRES_DB: swampnotes
     ports: ["5432:5432"]
     volumes:

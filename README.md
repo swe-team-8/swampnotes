@@ -32,3 +32,29 @@ vscode extensions (recommended): ESlint, Prettier, Tailwind CSS Intellisense, Py
 -AWS CLI
 -PostgreSQL (version 18)
 
+Docker compose (spin up the necessary containers): 
+Make sure you're running this from the location of the docker-compose.yaml file
+Or its path relative to the current directory location
+docker compose -f docker-compose.yaml up -d      
+
+Creating an alembic revision:
+cd apps/api (make it from this location)
+alembic revision --autogenerate -m "some title here"
+
+Pulling an alembic revision from remote:
+cd apps/api
+alembic upgrade head
+
+Now that I've finished configuring everything, here's how to go about spinning up our web app:
+
+Terminal 1: 
+cd apps/api
+uvicorn src.main:app --reload --port 8000
+
+Terminal 2:
+cd apps/web
+pnpm dev
+
+This boots up our front/back-end, the database should already be up and running (via the containers/postgres) otherwise the terminal 1 step won't launch.
+
+Navigate to http://localhost:3000 and you should see the front page! It's just the default Next.js page.tsx right now but here's where we'll see our changes in real time.
