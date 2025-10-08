@@ -11,20 +11,15 @@ SECRET = "4df3bc783e6dc21b74023f7b40a3ef94009c79a550a93cdc19e7439d5d5e3e3f"
 ALGO = "HS256"
 EXPIRATION = 3600 # One Hour
 
-admins = ["admin@ufl.edu"]
-
-# Replace with the correct way to determine if a user is an admin.
-def is_admin(userID: str):
-    return userID in admins
 
 # This functions signs a jwt and returns it to the user
 # Should be called right after login/signup
 # Response should be saved as a variable in js and used
 # For things like making transactions, posting notes, etc.
-def sign(userID: str):
+def sign(userID: str, is_admin: bool):
     payload = {
         "userID": userID,
-        "admin": is_admin(userID),
+        "admin": is_admin,
         "expiration": time.time() + EXPIRATION
     }
     return {"User Token": jwt.encode(payload, SECRET, algorithm=ALGO)}

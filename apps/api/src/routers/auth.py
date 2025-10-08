@@ -10,9 +10,11 @@ router = APIRouter()
 users = []
 password_hash = PasswordHash.recommended()
 
-def clear_users():
-    global users
-    users = []
+admins = ["admin@ufl.edu"]
+
+# Replace with the correct way to determine if a user is an admin.
+def is_admin(userID: str):
+    return userID in admins
 
 
 @router.post("/user/signup")
@@ -21,7 +23,7 @@ def signup(user: User = Body(default=None)):
     users.append(user) # TODO: Replace with a more permanent way of creating a user
     # TODO: Confirm email is valid and unique
     # TODO: Confirm that the user can sign up as their specified role
-    return jwt.sign(user.email)
+    return jwt.sign(user.email, is_admin(user.email))
 
 
 def is_valid_login(attempt: UserLogin):
@@ -35,7 +37,7 @@ def is_valid_login(attempt: UserLogin):
 @router.post("/user/login")
 def login(user: UserLogin = Body(default=None)):
     if is_valid_login(user):
-        return jwt.sign(user.email)
+        return jwt.sign(user.email, is_admin(user.email))
     else:
         return {"error": "Incorrect email or password. Please try again."}
 
@@ -53,6 +55,6 @@ def am_i_logged_in():
 
 # This is an example of how to verify if a user is an admin given their token.
 @router.get("/amianadmin", dependencies=[Depends(jwt.jwtBearer())])
-async def am_i_an_admin(token_data: str = Depends(jwt.jwtBearer())):
+def am_i_an_admin(token_data: str = Depends(jwt.jwtBearer())):
     token = jwt.decode(token_data)
     return {"Decoded token": token, "am_i_admin": token["admin"]}
