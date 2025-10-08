@@ -3,10 +3,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlmodel import SQLModel  # Remove once we start using Alembic migrations
+import uvicorn
 
-from .settings import settings
-from .db import engine
-from .routers import health, auth
+from settings import settings
+from db import engine
+from routers import health, auth
 
 
 @asynccontextmanager
@@ -45,3 +46,8 @@ def root():
 
 # Run:
 # uvicorn src.main:app --reload --port 8000
+
+# Run main to start the server
+# Go to localhost:8000
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

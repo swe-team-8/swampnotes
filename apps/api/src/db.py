@@ -1,6 +1,6 @@
 # skeleton database code
 from sqlmodel import SQLModel, create_engine, Session  # noqa: F401
-from .settings import settings
+from settings import settings
 
 engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
 
