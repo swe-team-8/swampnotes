@@ -3,15 +3,23 @@ from typing import List
 from sqlmodel import SQLModel, Field, Relationship
 
 
+
 # Basic model for a user (skeleton)
 class User(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     email: str = Field(index=True, unique=True)
+    password: str = Field(index=True)
     name: str | None = None
     school: str | None = None
     role: str = "student"  # student/tutor/admin
-    created_at: datetime = Field(default_factory=datetime.now(datetime.timezone.utc))
+    created_at: str = Field(default_factory=lambda: str(datetime.now()))
     notes: List["Note"] = Relationship(back_populates="author")
+
+
+# The necessary info from above for logging in
+class UserLogin(SQLModel):
+    email: str | None = None
+    password: str | None = None
 
 
 # Coure object skeleton
@@ -31,5 +39,5 @@ class Note(SQLModel, table=True):
     description: str | None = None
     file_url: str
     file_type: str | None = None
-    created_at: datetime = Field(default_factory=datetime.now(datetime.timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: str(datetime.now()))
     author: User | None = Relationship(back_populates="notes")
