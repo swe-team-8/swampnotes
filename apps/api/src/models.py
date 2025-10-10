@@ -1,18 +1,18 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 from sqlmodel import SQLModel, Field, Relationship
-
 
 
 # Basic model for a user (skeleton)
 class User(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     email: str = Field(index=True, unique=True)
-    password: str = Field(index=True)
+    password: str | None = None
+    auth_provider: str | None = "clerk"
     name: str | None = None
     school: str | None = None
     role: str = "student"  # student/tutor/admin
-    created_at: str = Field(default_factory=lambda: str(datetime.now()))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     notes: List["Note"] = Relationship(back_populates="author")
 
 
@@ -39,5 +39,5 @@ class Note(SQLModel, table=True):
     description: str | None = None
     file_url: str
     file_type: str | None = None
-    created_at: datetime = Field(default_factory=lambda: str(datetime.now()))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     author: User | None = Relationship(back_populates="notes")

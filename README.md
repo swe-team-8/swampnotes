@@ -99,6 +99,22 @@ cd apps/api
 alembic upgrade head
 ~~~
 
+**Roll back** the latest step:
+
+~~~bash
+cd apps/api
+alembic downgrade -1
+~~~
+
+**SEE** status/history (from `apps/api`):
+
+~~~bash
+cd apps/api
+alembic current
+alembic heads
+alembic history -n -10
+~~~
+
 ---
 
 ## Run the App (Dev)

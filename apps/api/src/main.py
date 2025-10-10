@@ -2,12 +2,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
-from sqlmodel import SQLModel  # Remove once we start using Alembic migrations
 import uvicorn
 
-from settings import settings
-from db import engine
-from routers import health, auth
+from .settings import settings
+from .db import engine
+from .routers import health, auth
 
 
 @asynccontextmanager
@@ -15,8 +14,6 @@ async def lifespan(app: FastAPI):
     # STARTUP: verify DB connection
     with engine.connect() as conn:
         conn.execute(text("SELECT 1"))
-        # Early dev only (move to alembic migrations later):
-        SQLModel.metadata.create_all(engine)
     yield
     # SHUTDOWN: nothing to dispose of explicitly
 
@@ -24,7 +21,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="SwampNotes API", lifespan=lifespan)
 
 # --- CORS ---
-# CORS setup for the Next.js dev server. Will need to add preview/staging origins later.
+# CORS setup for the Next.js dev server
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,  # e.g. ["http://localhost:3000", "http://127.0.0.1:3000"]

@@ -1,9 +1,13 @@
 from typing import Any
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env", extra="ignore", case_sensitive=False
+    )
+
     # DB: default to the working local credentials
     DATABASE_URL: str = "postgresql+psycopg://postgres:admin@127.0.0.1:5432/swampnotes"
 
@@ -18,17 +22,16 @@ class Settings(BaseSettings):
 
     # Auth-related
     ALLOWED_EMAIL_DOMAINS: list[str] = ["ufl.edu"]
-    AUTH_JWKS_URL: str | None = (
-        None  # should use Auth0/Clerk/NextAuth JWKS URL here later
-    )
+    AUTH_ISSUER: str | None = None  # ex: https://<subdomain>.clerk.accounts.dev
+    AUTH_AUDIENCE: str | None = None  # ex: fastapi
+    AUTH_JWKS_URL: str | None = None  # optional explicit JWKS URL
 
     @field_validator("CORS_ORIGINS", "ALLOWED_EMAIL_DOMAINS", mode="before")
     @classmethod
     def _coerce_list(cls, v: Any):
         """
         Accept a JSON array (e.g., '["http://localhost:3000"]') or
-        a comma-separated string (e.g., 'http://localhost:3000,http://127.0.0.1:3000')
-        and return list[str].
+        a comma-separated string (e.g., 'http://localhost:3000,http://127.0.0.1:3000') and return list[str].
         """
         if isinstance(v, str):
             s = v.strip()
@@ -38,9 +41,6 @@ class Settings(BaseSettings):
                 return json.loads(s)
             return [item.strip() for item in s.split(",") if item.strip()]
         return v
-
-    class Config:
-        env_file = ".env"
 
 
 settings = Settings()
