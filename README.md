@@ -10,6 +10,7 @@ A full-stack project with **FastAPI** (API), **Next.js** (web), and **PostgreSQL
 - [Prerequisites](#prereqs)
 - [VS Code Setup](#vs-code-setup)
 - [Backend Setup (API)](#backend-setup-api)
+- [Environment Variables (API & Web)](#environment-variables-api--web)
 - [Docker Services](#docker-services)
 - [Database Migrations (Alembic)](#database-migrations-alembic)
 - [Run the App (Dev)](#run-the-app-dev)
@@ -68,6 +69,63 @@ python -m pip install -U pip
 python -m pip install -r requirements.txt
 ~~~
 </details>
+
+---
+
+## Environment Variables (API & Web)
+
+These are **not tracked by Git**. Each dev has to create local env files. Restart your local dev servers after changes~
+
+### Locations
+- **API (FastAPI):** `apps/api/.env`
+- **Web (Next.js):** `apps/web/.env.local`
+
+
+### Example — `apps/api/.env` (FastAPI)
+```ini
+# Database
+DATABASE_URL=postgresql+psycopg://postgres:admin@127.0.0.1:5432/swampnotes
+
+# CORS (JSON format)
+CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000"]
+
+# Object Storage (MinIO / S3-compatible)
+S3_ENDPOINT_URL=http://localhost:9000
+S3_ACCESS_KEY_ID=minio
+S3_SECRET_ACCESS_KEY=minio12345
+S3_BUCKET=swampnotes
+
+# Auth
+ALLOWED_EMAIL_DOMAINS=["ufl.edu","example.edu"]
+
+# Optional JWKS override (e.g., Clerk dev):
+# AUTH_JWKS_URL=https://<your-subdomain>.clerk.accounts.dev/.well-known/jwks.json
+
+AUTH_ISSUER=https://strong-kiwi-62.clerk.accounts.dev
+AUTH_AUDIENCE=fastapi
+```
+
+### Example — `apps/web/.env.local` (Next.js)
+```ini
+# API base URL
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
+
+# Clerk (public key is sent to browser, secret stays on the server-side)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_c3Ryb25nLWtpd2ktNjIuY2xlcmsuYWNjb3VudHMuZGV2JA
+CLERK_SECRET_KEY=sk_test_TkI4DJF4ajvJunfSZdVfvGaH0xzhT3bfR5bqwuGeQc
+
+# Clerk routes
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/
+NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/
+```
+
+### Notes & Env Variable Troubleshooting
+- **Secrets:** Do not prefix server-only secrets with `NEXT_PUBLIC_` (those go to the browser)
+- **Auth 401/403:** Verify `AUTH_ISSUER`, `AUTH_AUDIENCE`, and `AUTH_JWKS_URL`
+- **CORS errors:** Confirm `CORS_ORIGINS` includes your web origin(s)
+- **DB errors:** Make sure Docker is up and `DATABASE_URL` points to a reachable Postgres
 
 ---
 
