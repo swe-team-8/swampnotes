@@ -19,8 +19,7 @@ async def me(current: TokenUser | None = Depends(get_current_user)):
     ):
         return {"user": None, "message": "Email domain not allowed."}
 
-    # Keep it simple for testing purposes: do NOT write to DB yet (your User model requires password).
-    # Later: make password nullable + upsert here, then Alembic migration.
+    # Keep it simple for testing purposes: do NOT write to DB yet (requires password)
     return {
         "user": {
             "sub": current.get("sub"),
