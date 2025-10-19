@@ -4,21 +4,15 @@ from fastapi import APIRouter
 from fastapi import APIRouter, Depends
 from ..auth_clerk import get_current_user, TokenUser
 from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from ..minio_client import create_bucket, upload_to_minio, download_from_minio
 
 router = APIRouter()
 BUCKET_NAME = "swampnotes"
 
-security = HTTPBearer()
-
 @router.post("/upload")
-async def upload(file: UploadFile = File(...), credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
-    payload = decode_token(token)
-    user_id = payload.get('sub')
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User ID not found in token")
+async def upload(file: UploadFile = File(...), current: TokenUser | None = Depends(get_current_user)):
+    if not current:
+        return {"user": None, "message": "You're not signed in yet."}
     result = upload_to_minio(file, BUCKET_NAME)
     if result:
         return {"message": "Upload successful", "filename": file.filename}
