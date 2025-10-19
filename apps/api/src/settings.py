@@ -15,10 +15,11 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
     # S3 / MinIO
-    S3_ENDPOINT_URL: str = "http://localhost:9000"
-    S3_ACCESS_KEY_ID: str = "minio"
-    S3_SECRET_ACCESS_KEY: str = "minio12345"
-    S3_BUCKET: str = "swampnotes"
+    MINIO_ENDPOINT: str = "127.0.0.1:9000"
+    MINIO_ACCESS_KEY: str = "admin123"
+    MINIO_SECRET_KEY: str = "admin123"
+    MINIO_BUCKET: str = "swampnotes"
+    MINIO_FORCE_PATH_STYLE: bool = True
 
     # Auth-related
     ALLOWED_EMAIL_DOMAINS: list[str] = ["ufl.edu"]

@@ -90,10 +90,12 @@ DATABASE_URL=postgresql+psycopg://postgres:admin@127.0.0.1:5432/swampnotes
 CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000"]
 
 # Object Storage (MinIO / S3-compatible)
-S3_ENDPOINT_URL=http://localhost:9000
-S3_ACCESS_KEY_ID=minio
-S3_SECRET_ACCESS_KEY=minio12345
-S3_BUCKET=swampnotes
+
+MINIO_ENDPOINT = 127.0.0.1:9000
+MINIO_ACCESS_KEY = admin123
+MINIO_SECRET_KEY = admin123
+MINIO_BUCKET = swampnotes
+MINIO_FORCE_PATH_STYLE = true
 
 # Auth
 ALLOWED_EMAIL_DOMAINS=["ufl.edu","example.edu"]

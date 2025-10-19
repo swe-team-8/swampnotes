@@ -6,11 +6,14 @@ import uvicorn
 
 from .settings import settings
 from .db import engine
-from .routers import health, auth
+from .routers import health, auth, files
+from .minio_client import create_bucket
 
+BUCKET_NAME = settings.MINIO_BUCKET
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    create_bucket(BUCKET_NAME)
     # STARTUP: verify DB connection
     with engine.connect() as conn:
         conn.execute(text("SELECT 1"))
@@ -33,6 +36,7 @@ app.add_middleware(
 # Routers
 app.include_router(health.router, tags=["meta"])
 app.include_router(auth.router, tags=["auth"])
+app.include_router(files.router, tags=["files"])
 
 
 # Simple root so we won't (won't see 404 error at "/")
@@ -46,5 +50,5 @@ def root():
 
 # Run main to start the server
 # Go to localhost:8000
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+# if __name__ == "__main__":
+#     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
