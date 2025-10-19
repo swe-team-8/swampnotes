@@ -8,26 +8,27 @@ class Settings(BaseSettings):
         env_file=".env", extra="ignore", case_sensitive=False
     )
 
+    # These are all default values if the environment variable is NOT found in .env
+
     # DB: default to the working local credentials
-    DATABASE_URL: str = "postgresql+psycopg://postgres:admin@127.0.0.1:5432/swampnotes"
+    DATABASE_URL: str | None = None
 
     # CORS: allow Next.js dev origins by default; can override later in .env as JSON or CSV
-    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    CORS_ORIGINS: list[str] | None = None
 
     # S3 / MinIO
-    MINIO_ENDPOINT: str = "127.0.0.1:9000"
-    MINIO_ACCESS_KEY: str = "admin123"
-    MINIO_SECRET_KEY: str = "admin123"
-    MINIO_BUCKET: str = "swampnotes"
-    MINIO_FORCE_PATH_STYLE: bool = True
+    MINIO_ENDPOINT: str | None = None
+    MINIO_ACCESS_KEY: str | None = None
+    MINIO_SECRET_KEY: str | None = None
+    MINIO_BUCKET: str | None = None
+    MINIO_FORCE_PATH_STYLE: bool = False
 
     # Auth-related
-    ALLOWED_EMAIL_DOMAINS: list[str] = ["ufl.edu"]
     AUTH_ISSUER: str | None = None  # ex: https://<subdomain>.clerk.accounts.dev
     AUTH_AUDIENCE: str | None = None  # ex: fastapi
     AUTH_JWKS_URL: str | None = None  # optional explicit JWKS URL
 
-    @field_validator("CORS_ORIGINS", "ALLOWED_EMAIL_DOMAINS", mode="before")
+    @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def _coerce_list(cls, v: Any):
         """

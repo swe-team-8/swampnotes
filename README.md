@@ -90,7 +90,6 @@ DATABASE_URL=postgresql+psycopg://postgres:admin@127.0.0.1:5432/swampnotes
 CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000"]
 
 # Object Storage (MinIO / S3-compatible)
-
 MINIO_ENDPOINT = 127.0.0.1:9000
 MINIO_ACCESS_KEY = admin123
 MINIO_SECRET_KEY = admin123
@@ -98,13 +97,9 @@ MINIO_BUCKET = swampnotes
 MINIO_FORCE_PATH_STYLE = true
 
 # Auth
-ALLOWED_EMAIL_DOMAINS=["ufl.edu","example.edu"]
-
-# Optional JWKS override (e.g., Clerk dev):
-# AUTH_JWKS_URL=https://<your-subdomain>.clerk.accounts.dev/.well-known/jwks.json
-
+AUTH_JWKS_URL=https://strong-kiwi-62.clerk.accounts.dev/.well-known/jwks.json
 AUTH_ISSUER=https://strong-kiwi-62.clerk.accounts.dev
-AUTH_AUDIENCE=fastapi
+AUTH_AUDIENCE=fastapi 
 ```
 
 ### Example — `apps/web/.env.local` (Next.js)
