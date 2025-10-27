@@ -41,6 +41,15 @@ def upload_to_minio(file, bucket_name):
         return False
 
 
+def delete_from_minio(filename, bucket_name):
+    try:
+        s3.delete_object(Bucket=bucket_name, Key=filename)
+        return True
+    except ClientError as e:
+        print(e)
+        return False
+
+
 def download_from_minio(filename, bucket_name):
     try:
         fileobj = io.BytesIO()

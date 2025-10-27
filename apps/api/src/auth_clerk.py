@@ -13,6 +13,7 @@ from .settings import settings
 class TokenUser(TypedDict, total=False):
     sub: str
     email: Optional[str]
+    username: str
 
 
 # Caches JWK client across requests
@@ -34,13 +35,14 @@ def _get_jwk_client() -> PyJWKClient:
 
     # cache a single client instance (httpx.Client used for timeouts/reuse)
     if _jwk_client is None or _jwk_client.uri != url:
-        _jwk_client = PyJWKClient(url, session=httpx.Client(timeout=5))
+        _jwk_client = PyJWKClient(url, timeout=5)
     return _jwk_client
 
 
 async def get_current_user(
     authorization: str | None = Header(None),
 ) -> Optional[TokenUser]:
+    print(authorization)
     """
     Verify Clerk-issued RS256 JWT.
     Returns claims (sub/email) or None if no Authorization header.
@@ -67,17 +69,18 @@ async def get_current_user(
             or claims.get("email_address")
             or claims.get("clerk_email")
         )
-        return {"sub": claims.get("sub", ""), "email": email}
+        return {"sub": claims.get("sub", ""), "email": email, "username": claims.get("username")}
     except InvalidTokenError as e:
         raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
 
 
 # Use this hard auth to require a valid user
-def require_user(current: Optional[TokenUser] = Depends(get_current_user)) -> TokenUser:
+def require_user(current: Optional[TokenUser] = Depends(get_current_user)):
     if not current:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Sign in required"
         )
+    return current
 
 
 # Use this to expose the user (can be None) to routes w/ optional auth
