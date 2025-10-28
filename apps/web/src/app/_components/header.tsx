@@ -1,13 +1,37 @@
 "use client";
-import { SignedIn, SignedOut, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
+
+import Link from "next/link";
+import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 
 // Create a basic header
+const DotIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" aria-hidden>
+    <circle cx="4" cy="4" r="4" />
+  </svg>
+);
+
 export default function Header() {
   return (
     <header className="flex items-center justify-between p-4 border-b">
-      <a href="/" className="font-semibold">SwampNotes</a>
+      <Link href="/" className="font-semibold">SwampNotes</Link>
+
       <nav className="flex items-center gap-3">
-        <a href="/notes" className="underline">Notes</a>
+        <SignedIn>
+          <UserButton
+            afterSignOutUrl="/"
+            userProfileMode="navigation"
+            userProfileUrl="/profile"
+          >
+            <UserButton.MenuItems>
+              <UserButton.Link
+                label="Notes"
+                labelIcon={<DotIcon />}
+                href="/notes"
+              />
+            </UserButton.MenuItems>
+          </UserButton>
+        </SignedIn>
+
         <SignedOut>
           <a href="/sign-in">Sign In</a>
           <SignUpButton mode="modal" />

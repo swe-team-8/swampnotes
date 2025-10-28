@@ -1,30 +1,32 @@
+from __future__ import annotations
 from fastapi import APIRouter, Depends
-from ..auth_clerk import get_current_user, TokenUser
-from ..settings import settings
+from ..deps import optional_user, require_user, TokenUser
 
-router = APIRouter()
+# endpoint routing
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.get("/auth/me")
-async def me(current: TokenUser | None = Depends(get_current_user)):
+# simple auth test endpoint (removed email authentication since Clerk handles that)
+@router.get("/me")
+async def me(current: TokenUser | None = Depends(optional_user)):
+    print(current)
     if not current:
         return {"user": None, "message": "You're not signed in yet."}
-
-    # restrict to school domains
-    domains = settings.ALLOWED_EMAIL_DOMAINS or []
-    if (
-        current.get("email")
-        and domains
-        and not any(current["email"].endswith(f"@{d}") for d in domains)
-    ):
-        return {"user": None, "message": "Email domain not allowed."}
-
-    # Keep it simple for testing purposes: do NOT write to DB yet (your User model requires password).
-    # Later: make password nullable + upsert here, then Alembic migration.
     return {
         "user": {
             "sub": current.get("sub"),
+            "name": current.get("name"),
             "email": current.get("email"),
+            "username": current.get("username"),
         },
         "message": "Signed in.",
+    }
+
+
+@router.get("/whoami")
+async def whoami(current: TokenUser = Depends(require_user)):
+    return {
+        "sub": current["sub"],
+        "email": current.get("email"),
+        "username": current.get("username"),
     }
