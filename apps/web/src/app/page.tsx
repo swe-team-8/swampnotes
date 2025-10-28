@@ -9,6 +9,7 @@ export default function WhoAmI() {
   useEffect(() => {
     (async () => {
       const token = isSignedIn ? await getToken({ template: "fastapi" }) : null;
+      console.log(token);
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/me`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         cache: "no-store",
