@@ -29,7 +29,6 @@ class Course(SQLModel, table=True):
     title: str
     school: str
 
-
 # Note object skeleton
 class Note(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
@@ -41,3 +40,4 @@ class Note(SQLModel, table=True):
     file_type: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     author: User | None = Relationship(back_populates="notes")
+

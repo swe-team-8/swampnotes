@@ -9,7 +9,7 @@ export default function Header() {
       <nav className="flex items-center gap-3">
         <a href="/notes" className="underline">Notes</a>
         <SignedOut>
-          <SignInButton mode="modal" />
+          <a href="/sign-in">Sign In</a>
           <SignUpButton mode="modal" />
         </SignedOut>
       </nav>
