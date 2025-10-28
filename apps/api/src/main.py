@@ -6,7 +6,7 @@ import uvicorn
 
 from .settings import settings
 from .db import engine
-from .routers import health, auth, files
+from .routers import health, auth, files, users
 from .minio_client import create_bucket
 
 BUCKET_NAME = settings.MINIO_BUCKET
@@ -38,6 +38,7 @@ app.add_middleware(
 app.include_router(health.router, tags=["meta"])
 app.include_router(auth.router, tags=["auth"])
 app.include_router(files.router, tags=["files"])
+app.include_router(users.router)
 
 
 # Simple root so we won't (won't see 404 error at "/")

@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import Optional, TypedDict
 
-import httpx
 from fastapi import Header, HTTPException, Depends, status
 from jwt import decode as jwt_decode, InvalidTokenError, PyJWKClient
 
@@ -12,6 +11,7 @@ from .settings import settings
 
 class TokenUser(TypedDict, total=False):
     sub: str
+    name: Optional[str]
     email: Optional[str]
 
 
@@ -34,7 +34,7 @@ def _get_jwk_client() -> PyJWKClient:
 
     # cache a single client instance (httpx.Client used for timeouts/reuse)
     if _jwk_client is None or _jwk_client.uri != url:
-        _jwk_client = PyJWKClient(url, session=httpx.Client(timeout=5))
+        _jwk_client = PyJWKClient(url, timeout=5)
     return _jwk_client
 
 
@@ -62,12 +62,13 @@ async def get_current_user(
             issuer=settings.AUTH_ISSUER,
             options={"require": ["exp", "iss", "aud"]},
         )
+        name = claims.get("name")
         email = (
             claims.get("email")
             or claims.get("email_address")
             or claims.get("clerk_email")
         )
-        return {"sub": claims.get("sub", ""), "email": email}
+        return {"sub": claims.get("sub", ""), "name": name, "email": email}
     except InvalidTokenError as e:
         raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
 
@@ -78,6 +79,7 @@ def require_user(current: Optional[TokenUser] = Depends(get_current_user)) -> To
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Sign in required"
         )
+    return current
 
 
 # Use this to expose the user (can be None) to routes w/ optional auth

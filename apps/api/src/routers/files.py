@@ -12,7 +12,7 @@ from ..minio_client import (
     presign_get,
 )
 
-router = APIRouter()
+router = APIRouter(prefix="/uploads", tags=["uploads"])
 BUCKET_NAME = settings.MINIO_BUCKET
 
 

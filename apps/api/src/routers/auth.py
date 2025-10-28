@@ -12,7 +12,11 @@ async def me(current: TokenUser | None = Depends(optional_user)):
     if not current:
         return {"user": None, "message": "You're not signed in yet."}
     return {
-        "user": {"sub": current.get("sub"), "email": current.get("email")},
+        "user": {
+            "sub": current.get("sub"),
+            "name": current.get("name"),
+            "email": current.get("email"),
+        },
         "message": "Signed in.",
     }
 
