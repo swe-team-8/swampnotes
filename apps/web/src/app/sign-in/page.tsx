@@ -1,6 +1,6 @@
 "use client";
+import { useEffect, useState } from "react";
 import { useSignIn } from "@clerk/nextjs";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -34,7 +34,7 @@ export default function CustomSignInForm(){
                 await setActive({session: result.createdSessionId});
                 router.push("/");
                 console.log("Created session ID:", result.createdSessionId);
-                console.log("Sign in result:", result.status, result);
+        
 
             }else{
                 console.log("Sign in not complete:", result);
