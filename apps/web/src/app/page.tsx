@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { useAuth } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 
@@ -18,5 +19,24 @@ export default function WhoAmI() {
     })();
   }, [isSignedIn, getToken]);
 
-  return <pre className="p-3 bg-gray-100 rounded">{JSON.stringify(me, null, 2)}</pre>;
+  return (
+    <main className="relative h-screen w-full flex items-center justify-center text-center text-white">
+      <Image
+        src="/nice_lib.jpg"
+        alt="nice place"
+        fill
+        className="object-cover brightness-75"
+        priority
+      />
+ 
+      <div className="z-10 space-y-4">
+        <h1 className="text-6xl font-extrabold drop-shadow-lg">
+          Welcome to SwampNotes
+        </h1>
+        <p className="text-xl text-gray-100 max-w-xl mx-auto">
+          Share and explore study materials at the University of Florida
+        </p>
+      </div>
+    </main>
+  );
 }
