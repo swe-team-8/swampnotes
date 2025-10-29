@@ -12,7 +12,7 @@ export default function FileDownloader(){
   const downloadFile = async () => {
       const token = await getToken({ template: "fastapi" });
       try {
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/download/${authorInput}/${filenameInput}`,{
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/notes/download/${authorInput}/${filenameInput}`,{
             headers: {
                 'Authorization': `Bearer ${token}`,
             },

@@ -14,7 +14,7 @@ from ..minio_client import (
     presign_get,
 )
 
-router = APIRouter(prefix="/uploads", tags=["uploads"])
+router = APIRouter(prefix="/notes", tags=["notes"])
 BUCKET_NAME = settings.MINIO_BUCKET
 
 # Constants

@@ -10,7 +10,7 @@ export default function FileDeleter(){
 
   const deleteFile = async () => {
       const token = await getToken({ template: "fastapi" });
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/delete/${filenameInput}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/notes/delete/${filenameInput}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         cache: "no-store",
       });

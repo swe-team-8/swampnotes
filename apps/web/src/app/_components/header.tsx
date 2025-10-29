@@ -17,7 +17,7 @@ export default function Header() {
 
       <nav className="flex items-center gap-3">
         <SignedIn>
-          <a href="/upload">Upload +</a>
+          <a href="/notes/upload">Upload +</a>
           <UserButton
             afterSignOutUrl="/"
             userProfileMode="navigation"
