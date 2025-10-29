@@ -40,7 +40,6 @@ class Course(SQLModel, table=True):
     title: str
     school: str
 
-
 # Note object skeleton
 class Note(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)

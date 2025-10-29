@@ -33,7 +33,7 @@ export default function Header() {
         </SignedIn>
 
         <SignedOut>
-          <SignInButton mode="modal" />
+          <a href="/sign-in">Sign In</a>
           <SignUpButton mode="modal" />
         </SignedOut>
       </nav>

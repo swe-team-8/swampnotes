@@ -30,7 +30,7 @@ export default function ProfilePage() {
 }
 
 function AppSettings() {
-  const { isSignedIn, getToken } = useAuth();
+  const {isSignedIn, getToken } = useAuth();
   const [data, setData] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
