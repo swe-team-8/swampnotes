@@ -13,6 +13,7 @@ from ..minio_client import (
     presign_put,
     presign_get,
 )
+from ..db import *
 
 router = APIRouter(prefix="/notes", tags=["notes"])
 BUCKET_NAME = settings.MINIO_BUCKET
@@ -45,6 +46,7 @@ async def upload_proxy(
             status_code=409, detail="File with the same name already exists"
         )
     ok = upload_to_minio(file, BUCKET_NAME)
+    # TODO: Save the file data to the database.
     if ok:
         return {"message": "Upload successful", "filename": file.filename}
     raise HTTPException(status_code=500, detail="Upload failed")
@@ -70,7 +72,24 @@ async def delete(filename: str, user: TokenUser = Depends(require_user)):
     res = delete_from_minio(filename, BUCKET_NAME)
     if res:
         return {"message": "File deleted"}
-    raise HTTPException(status_code=404, detail="File not found")
+    raise HTTPException(status_code=404, detail="File not found")\
+
+
+# Endpoint to get list of all notes provided certain query parameters
+@router.get("/getnotes/")
+async def get_notes(author: str = None, course: str = None, semester: str = None, user: TokenUser =
+Depends(require_user)):
+    matching_notes = []
+    all_notes = get_all_notes()
+    for note in all_notes:
+        if author is not None and note.author != author:
+            continue
+        if course is not None and note.course_name != course:
+            continue
+        if semester is not None and note.semester != semester:
+            continue
+        matching_notes.append(note)
+    return {matching_notes}
 
 
 # Presigned uploads (for browser -> minIO uploads)

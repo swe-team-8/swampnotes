@@ -29,8 +29,7 @@ class User(SQLModel, table=True):
     # notes/author relationship
     notes: List["Note"] = Relationship(back_populates="author")
 
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    notes: List["Note"] = Relationship(back_populates="author")
+    points: int = 10000
 
 
 # Coure object skeleton
@@ -46,8 +45,21 @@ class Note(SQLModel, table=True):
     author_id: int = Field(foreign_key="user.id", index=True)
     course_id: int = Field(foreign_key="course.id", index=True)
     title: str
+    course_name: str
+    semester: str
     description: str | None = None
     object_key: str | None = None  # Use this NOT file_url
     file_type: str | None = None
     author: User | None = Relationship(back_populates="notes")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    ratings: list["Rating"]
+    downloads: int
+    views: int
+
+
+# Ratings object skeleton
+class Rating(SQLModel, table=True):
+    author: User
+    description: str
+    rating: float  # Out of 5
+    note: Note
