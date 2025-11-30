@@ -1,32 +1,37 @@
+"""
+unused imports
 from PyPDF2 import PdfReader
 from PIL import Image
-import fitz
+# import fitz
+# the above import breaks the backennd build for some reason
 from pdf2image import convert_from_bytes
 import io
 import numpy as np
 import easyocr
 import cv2
+from fastapi import UploadFile
+"""
+
 from google.cloud import documentai_v1
 from google.api_core.client_options import ClientOptions
 from google.oauth2 import service_account
-import fitz
-
-from fastapi import UploadFile
 
 
 def transcribe_pdf(raw_bytes, filename):
     # TODO: Move these all to .env
-    project_id = 'document-ai-479801'
-    processor_id = 'f70206c200d81703'
-    location = 'us'
+    project_id = "document-ai-479801"
+    processor_id = "f70206c200d81703"
+    location = "us"
 
     opts = ClientOptions(api_endpoint=f"{location}-documentai.googleapis.com")
     credentials = service_account.Credentials.from_service_account_file(
-      "document-ai-479801-eeca2f70d17b.json"
+        "document-ai-479801-eeca2f70d17b.json"
     )
 
     # Initialize Document AI client.
-    client = documentai_v1.DocumentProcessorServiceClient(client_options=opts, credentials=credentials)
+    client = documentai_v1.DocumentProcessorServiceClient(
+        client_options=opts, credentials=credentials
+    )
 
     # Get the Fully-qualified Processor path.
     full_processor_name = client.processor_path(project_id, location, processor_id)
@@ -42,12 +47,14 @@ def transcribe_pdf(raw_bytes, filename):
     # Load binary data.
     # For supported MIME types, refer to https://cloud.google.com/document-ai/docs/file-types
     raw_document = documentai_v1.RawDocument(
-      content=raw_bytes,
-      mime_type="application/pdf",
+        content=raw_bytes,
+        mime_type="application/pdf",
     )
 
     # Send a request and get the processed document.
-    request = documentai_v1.ProcessRequest(name=processor.name, raw_document=raw_document)
+    request = documentai_v1.ProcessRequest(
+        name=processor.name, raw_document=raw_document
+    )
     result = client.process_document(request=request)
     document = result.document
 
@@ -57,4 +64,3 @@ def transcribe_pdf(raw_bytes, filename):
     print("The document contains the following text:")
     print(document.text)
     # TODO: Save the text and somehow give users access to it.
-

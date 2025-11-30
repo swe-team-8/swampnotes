@@ -27,6 +27,7 @@ class User(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     # notes/author relationship
+    notes: List["Note"] = Relationship(back_populates="author")
 
     points: int = 10000
 
