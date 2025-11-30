@@ -27,7 +27,6 @@ class User(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     # notes/author relationship
-    notes: List["Note"] = Relationship(back_populates="author")
 
     points: int = 10000
 
@@ -52,14 +51,12 @@ class Note(SQLModel, table=True):
     file_type: str | None = None
     author: User | None = Relationship(back_populates="notes")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    ratings: list["Rating"]
     downloads: int
     views: int
 
 
 # Ratings object skeleton
 class Rating(SQLModel, table=True):
-    author: User
+    id: int | None = Field(default=None, primary_key=True)
     description: str
     rating: float  # Out of 5
-    note: Note

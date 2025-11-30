@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Body
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Body, BackgroundTasks
 
 from .. import minio_client  # noqa: F401
 from ..deps import require_user
@@ -14,6 +14,7 @@ from ..minio_client import (
     presign_get,
 )
 from ..db import *
+from ..transcribe import *
 
 router = APIRouter(prefix="/notes", tags=["notes"])
 BUCKET_NAME = settings.MINIO_BUCKET
@@ -24,8 +25,10 @@ ACCEPTABLE_TYPES = ["application/pdf", "text/plain"]
 
 
 # Proxy uploads (for dev purposes)
+# TODO: Add upload/download support for MULTIPLE image files
 @router.post("/upload")
 async def upload_proxy(
+    background_tasks: BackgroundTasks,  # This lets fastapi do work after sending a response.
     file: UploadFile = File(...),
     user: TokenUser = Depends(require_user),
 ):
@@ -45,9 +48,14 @@ async def upload_proxy(
         raise HTTPException(
             status_code=409, detail="File with the same name already exists"
         )
-    ok = upload_to_minio(file, BUCKET_NAME)
-    # TODO: Save the file data to the database.
+    file_contents = await file.read()  # This reads the file and stores the bytes, closes stream.
+    # TODO: Uncomment the following line
+    ok = True  # upload_to_minio(file_contents, file.filename, BUCKET_NAME)
+    # TODO: Save the file metadata to the database.
     if ok:
+        if file.content_type == "application/pdf":
+            background_tasks.add_task(transcribe_pdf, raw_bytes=file_contents,
+                                      filename=file.filename)
         return {"message": "Upload successful", "filename": file.filename}
     raise HTTPException(status_code=500, detail="Upload failed")
 
@@ -92,25 +100,34 @@ Depends(require_user)):
     return {matching_notes}
 
 
-# Presigned uploads (for browser -> minIO uploads)
-@router.post("/uploads/sign")
-def sign_upload(
-    filename: str = Body(..., embed=True),
-    content_type: str = Body(..., embed=True),
-    user: TokenUser = Depends(require_user),
-):
-    # Filter by user to avoid conflicts when sharing a bucket
-    key = f"users/{user['sub']}/{filename}"
-    url = presign_put(key, content_type=content_type, expires=300)
-    return {"uploadUrl": url, "objectKey": key}
+@router.get("/writereview")
+async def write_review(review_author: str, note_author: str, note_name: str, rating: int,\
+                       description: str = "", user: TokenUser = Depends(require_user)):
+    # TODO: Save review to database after creating a new object
+    pass
 
 
-# Presigned downloads
-@router.get("/uploads/sign-get")
-def sign_get(
-    key: str,
-    user: TokenUser = Depends(require_user),
-):
-    # Validate ownership before signing (optional)
-    url = presign_get(key, expires=300)
-    return {"url": url}
+# These functions will not be used unless we have time to implement them.
+
+# # Presigned uploads (for browser -> minIO uploads)
+# @router.post("/uploads/sign")
+# def sign_upload(
+#     filename: str = Body(..., embed=True),
+#     content_type: str = Body(..., embed=True),
+#     user: TokenUser = Depends(require_user),
+# ):
+#     # Filter by user to avoid conflicts when sharing a bucket
+#     key = f"users/{user['sub']}/{filename}"
+#     url = presign_put(key, content_type=content_type, expires=300)
+#     return {"uploadUrl": url, "objectKey": key}
+#
+#
+# # Presigned downloads
+# @router.get("/uploads/sign-get")
+# def sign_get(
+#     key: str,
+#     user: TokenUser = Depends(require_user),
+# ):
+#     # Validate ownership before signing (optional)
+#     url = presign_get(key, expires=300)
+#     return {"url": url}
