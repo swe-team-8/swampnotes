@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSignIn } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-export default function CustomSignInForm(){
+export default function CustomSignInForm() {
     //values from clerk 
     const {isLoaded, signIn, setActive} = useSignIn();
 
@@ -15,7 +15,7 @@ export default function CustomSignInForm(){
     const router = useRouter();
 
     //Handling sign in submission 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         
         //Makes it so that page doesn't refresh whenever you submit form
         e.preventDefault();
@@ -41,9 +41,20 @@ export default function CustomSignInForm(){
                 setError("Sign in incomplete — check Clerk dashboard configuration.");
             }
         //Catching any errors 
-        } catch (err: any){
-            console.error("Sign in error:", err);
-            setError(err.errors ? err.errors[0].message : "Sign in failed");
+        } catch (err: unknown) {
+                console.error("Sign in error:", err);
+                interface ClerkError { errors: Array<{ message?: string }> }
+                const message = (() => {
+                    if (
+                        typeof err === "object" && err !== null &&
+                        "errors" in err && Array.isArray((err as { errors: unknown }).errors)
+                    ) {
+                        const first = (err as ClerkError).errors[0];
+                        return first?.message || "Sign in failed";
+                    }
+                    return err instanceof Error ? err.message : "Sign in failed";
+                })();
+                setError(message);
         }
     };
 
@@ -68,12 +79,13 @@ export default function CustomSignInForm(){
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                     />                            
-                    <button 
+                    <button
                         type="submit"
                         className="bg-orange-400 hover:bg-orange-600 text-white py-2 rounded-md"
                         >
                             Sign In
                         </button>
+                    {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
                 </form>
             </section>
 

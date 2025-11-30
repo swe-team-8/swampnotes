@@ -1,10 +1,9 @@
 "use client";
 import Image from "next/image";
 import { useAuth } from "@clerk/nextjs";
-import { useEffect, useState } from "react";
 
 export default function WhoAmI() {
-  const { isSignedIn } = useAuth();
+  useAuth();
 
   return (
     <main className="relative h-screen w-full flex items-center justify-center text-center text-white">

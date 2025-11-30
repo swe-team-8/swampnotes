@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignUpButton, UserButton } from "@clerk/nextjs";
 
 // Create a basic header
 const DotIcon = () => (
@@ -17,7 +17,7 @@ export default function Header() {
 
       <nav className="flex items-center gap-3">
         <SignedIn>
-          <a href="/notes/upload">Upload +</a>
+          <Link href="/notes/upload">Upload +</Link>
           <UserButton
             afterSignOutUrl="/"
             userProfileMode="navigation"
@@ -34,7 +34,7 @@ export default function Header() {
         </SignedIn>
 
         <SignedOut>
-          <a href="/sign-in">Sign In</a>
+          <Link href="/sign-in">Sign In</Link>
           <SignUpButton mode="modal" />
         </SignedOut>
       </nav>

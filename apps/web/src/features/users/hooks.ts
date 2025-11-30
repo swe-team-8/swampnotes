@@ -17,8 +17,9 @@ export function useUser() {
       const token = (await getToken({ template: "fastapi" })) || undefined;
       const userData = await apiFetch<UserMeResponse>("/users/me", { auth: true, token });
       setData(userData);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Failed to load user";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -40,8 +41,9 @@ export function useUser() {
       });
       setData({ user: { ...data.user, ...updated.user } });
       return true;
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Update failed";
+      setError(message);
       return false;
     }
   }, [data, getToken]);

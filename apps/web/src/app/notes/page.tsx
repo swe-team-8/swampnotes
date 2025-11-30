@@ -48,7 +48,7 @@ export default function NotesPage(){
                                     📒
                                 </span>
                                 <Link  
-                                    href={'/notes/${n.id}'}
+                                    href={`/notes/${n.id}`}
                                     className="text-base font-semibold text-gray-800 hover:underline"
                                 >
                                     {n.title}

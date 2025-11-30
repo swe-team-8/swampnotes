@@ -41,8 +41,9 @@ export default function UploadNotePage() {
 			setSuccess("Upload complete");
 			setSelectedFile(null);
 			setTitle(""); setCourseId(""); setCourseName(""); setSemester(""); setDescription("");
-		} catch (e: any) {
-			setError(e.message || "Upload failed");
+		} catch (e: unknown) {
+			const message = e instanceof Error ? e.message : "Upload failed";
+			setError(message);
 		} finally {
 			setUploading(false);
 		}
