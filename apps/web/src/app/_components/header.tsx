@@ -17,18 +17,13 @@ export default function Header() {
 
       <nav className="flex items-center gap-3">
         <SignedIn>
-          <Link href="/notes/upload">Upload +</Link>
+          <Link href="/notes">Notes</Link>
           <UserButton
             afterSignOutUrl="/"
             userProfileMode="navigation"
             userProfileUrl="/profile"
           >
             <UserButton.MenuItems>
-              <UserButton.Link
-                label="Notes"
-                labelIcon={<DotIcon />}
-                href="/notes"
-              />
             </UserButton.MenuItems>
           </UserButton>
         </SignedIn>
