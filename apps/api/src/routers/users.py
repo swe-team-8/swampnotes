@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import Optional
 from fastapi import APIRouter, Depends
-from sqlmodel import SQLModel, Session, select, Field  # noqa: F401
-from ..deps import db_session, require_user, TokenUser
+from sqlmodel import SQLModel, Session
+from ..deps import db_session, get_current_db_user
 from ..models import User
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -16,42 +16,20 @@ class UserPrefsUpdate(SQLModel):
     show_email: Optional[bool] = None
 
 
-def ensure_user(sess: Session, tok: TokenUser) -> User:
-    # Resolve user by: clerk 'sub'ject -> fallback to postgres (email) -> create if both fail
-    user = sess.exec(select(User).where(User.sub == tok["sub"])).first()
-    if not user and tok.get("email"):
-        user = sess.exec(select(User).where(User.email == tok["email"])).first()
-    if not user:
-        user = User(
-            sub=tok["sub"],
-            email=tok.get("email") or f"{tok['sub']}@unknown.local",
-            name=tok.get("name"),
-        )
-        sess.add(user)
-        sess.commit()
-        sess.refresh(user)
-    if not user.sub:
-        user.sub = tok["sub"]
-        sess.add(user)
-        sess.commit()
-        sess.refresh(user)
-    return user
-
-
 # /me GET user endpoint
 @router.get("/me")
-def get_me(sess: Session = Depends(db_session), tok: TokenUser = Depends(require_user)):
-    u = ensure_user(sess, tok)
+def get_me(user: User = Depends(get_current_db_user)):
     return {
         "user": {
-            "id": u.id,
-            "sub": u.sub,
-            "email": u.email,
-            "name": u.name,
-            "display_name": u.display_name,
-            "bio": u.bio,
-            "is_profile_public": u.is_profile_public,
-            "show_email": u.show_email,
+            "id": user.id,
+            "sub": user.sub,
+            "email": user.email,
+            "name": user.name,
+            "display_name": user.display_name,
+            "bio": user.bio,
+            "is_profile_public": user.is_profile_public,
+            "show_email": user.show_email,
+            "points": user.points,
         }
     }
 
@@ -60,21 +38,20 @@ def get_me(sess: Session = Depends(db_session), tok: TokenUser = Depends(require
 @router.patch("/me")
 def update_me(
     payload: UserPrefsUpdate,
-    sess: Session = Depends(db_session),
-    tok: TokenUser = Depends(require_user),
+    user: User = Depends(get_current_db_user),
+    session: Session = Depends(db_session),
 ):
-    u = ensure_user(sess, tok)
     for k, v in payload.dict(exclude_unset=True).items():
-        setattr(u, k, v)
-    sess.add(u)
-    sess.commit()
-    sess.refresh(u)
+        setattr(user, k, v)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
     return {
         "ok": True,
         "user": {
-            "display_name": u.display_name,
-            "bio": u.bio,
-            "is_profile_public": u.is_profile_public,
-            "show_email": u.show_email,
+            "display_name": user.display_name,
+            "bio": user.bio,
+            "is_profile_public": user.is_profile_public,
+            "show_email": user.show_email,
         },
     }

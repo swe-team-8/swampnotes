@@ -1,60 +1,76 @@
 "use client";
-import axios from "axios"
+import axios from "axios";
 import { useAuth } from "@clerk/nextjs";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-export default function upload() {
+export default function UploadNotePage() {
   const { isSignedIn, getToken } = useAuth();
-  const [me, setMe] = useState<any>(null);
+	const [selectedFile, setSelectedFile] = useState<File | null>(null);
+	const [title, setTitle] = useState("");
+	const [courseId, setCourseId] = useState("");
+	const [courseName, setCourseName] = useState("");
+	const [semester, setSemester] = useState("");
+	const [description, setDescription] = useState("");
+	const [uploading, setUploading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [success, setSuccess] = useState<string | null>(null);
 
-	const [selectedFile, setSelectedFile] = useState(null);
-	const onFileChange = (event) => {
-		setSelectedFile(event.target.files[0]);
-	};
-	const onFileUpload = async () => {
-        const token = await getToken({ template: "fastapi" });
-		const formData = new FormData();
-		formData.append(
-			"file",
-			selectedFile,
-			selectedFile.name
-		);
-		console.log(selectedFile);
-		axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/notes/upload`, formData,{
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            }
-        });
-	};
-	const fileData = () => {
-		if (selectedFile) {
-			return (
-				<div>
-					<h2>File Details:</h2>
-					<p>File Name: {selectedFile.name}</p>
-					<p>File Type: {selectedFile.type}</p>
-					<p>
-						Last Modified: {selectedFile.lastModifiedDate.toDateString()}
-					</p>
-				</div>
-			);
-		} else {
-			return (
-				<div>
-					<br />
-					<h4>Choose before Pressing the Upload button</h4>
-				</div>
-			);
+	function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+		const file = e.target.files?.[0] || null;
+		setSelectedFile(file);
+	}
+
+	async function onUpload() {
+		setError(null); setSuccess(null);
+		if (!isSignedIn) { setError("You must be signed in."); return; }
+		if (!selectedFile) { setError("Please choose a file."); return; }
+		if (!title || !courseId || !courseName || !semester) { setError("All required fields must be filled."); return; }
+		setUploading(true);
+		try {
+			const token = await getToken({ template: "fastapi" });
+			const formData = new FormData();
+			formData.append("file", selectedFile, selectedFile.name);
+			formData.append("title", title);
+			formData.append("course_id", courseId);
+			formData.append("course_name", courseName);
+			formData.append("semester", semester);
+			if (description) formData.append("description", description);
+			await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/notes/upload`, formData, {
+				headers: { Authorization: token ? `Bearer ${token}` : "" },
+			});
+			setSuccess("Upload complete");
+			setSelectedFile(null);
+			setTitle(""); setCourseId(""); setCourseName(""); setSemester(""); setDescription("");
+		} catch (e: any) {
+			setError(e.message || "Upload failed");
+		} finally {
+			setUploading(false);
 		}
-	};
+	}
 
 	return (
-		<div>
-			<div>
+		<div className="max-w-xl space-y-4">
+			<h1 className="text-2xl font-semibold">Upload Note</h1>
+			<div className="space-y-2">
+				<input type="text" placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} className="w-full border rounded px-3 py-2" />
+				<input type="number" placeholder="Course ID" value={courseId} onChange={e => setCourseId(e.target.value)} className="w-full border rounded px-3 py-2" />
+				<input type="text" placeholder="Course Name" value={courseName} onChange={e => setCourseName(e.target.value)} className="w-full border rounded px-3 py-2" />
+				<input type="text" placeholder="Semester" value={semester} onChange={e => setSemester(e.target.value)} className="w-full border rounded px-3 py-2" />
+				<textarea placeholder="Description (optional)" value={description} onChange={e => setDescription(e.target.value)} className="w-full border rounded px-3 py-2" rows={3} />
 				<input type="file" onChange={onFileChange} />
-				<button onClick={onFileUpload}>Upload!</button>
+				<button disabled={uploading} onClick={onUpload} className="px-4 py-2 bg-black text-white rounded disabled:opacity-50">
+					{uploading ? "Uploading..." : "Upload"}
+				</button>
+				{error && <p className="text-sm text-red-600">{error}</p>}
+				{success && <p className="text-sm text-green-600">{success}</p>}
 			</div>
-			{fileData()}
+			{selectedFile && (
+				<div className="text-sm text-gray-700">
+					<p>File Name: {selectedFile.name}</p>
+					<p>File Type: {selectedFile.type || "unknown"}</p>
+					<p>Last Modified: {new Date(selectedFile.lastModified).toLocaleString()}</p>
+				</div>
+			)}
 		</div>
 	);
 }

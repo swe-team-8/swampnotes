@@ -4,20 +4,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 
 export default function WhoAmI() {
-  const { isSignedIn, getToken } = useAuth();
-  const [me, setMe] = useState<any>(null);
-
-  useEffect(() => {
-    (async () => {
-      const token = isSignedIn ? await getToken({ template: "fastapi" }) : null;
-      console.log(token);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/me`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        cache: "no-store",
-      });
-      setMe(await res.json());
-    })();
-  }, [isSignedIn, getToken]);
+  const { isSignedIn } = useAuth();
 
   return (
     <main className="relative h-screen w-full flex items-center justify-center text-center text-white">

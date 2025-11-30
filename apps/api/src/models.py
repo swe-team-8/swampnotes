@@ -3,7 +3,7 @@ from typing import List, Optional
 from sqlmodel import SQLModel, Field, Relationship
 
 
-# Basic model for a user (skeleton)
+# Basic model for a user
 class User(SQLModel, table=True):
     # explicit primary key
     id: int | None = Field(default=None, primary_key=True)
@@ -39,6 +39,7 @@ class Course(SQLModel, table=True):
     title: str
     school: str
 
+
 # Note object skeleton
 class Note(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
@@ -50,16 +51,21 @@ class Note(SQLModel, table=True):
     description: str | None = None
     object_key: str | None = None  # Use this NOT file_url
     file_type: str | None = None
-    author: User | None = Relationship(back_populates="notes")
+    author: Optional[User] = Relationship(back_populates="notes")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    ratings: list["Rating"]
-    downloads: int
-    views: int
+    ratings: List["Rating"] = Relationship(back_populates="note")
+    downloads: int = 0
+    views: int = 0
 
 
 # Ratings object skeleton
 class Rating(SQLModel, table=True):
-    author: User
-    description: str
-    rating: float  # Out of 5
-    note: Note
+    id: int | None = Field(default=None, primary_key=True)
+    author_id: int = Field(foreign_key="user.id", index=True)
+    note_id: int = Field(foreign_key="note.id", index=True)
+    description: Optional[str] = None
+    rating: float
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    author: Optional[User] = Relationship()
+    note: Optional[Note] = Relationship(back_populates="ratings")

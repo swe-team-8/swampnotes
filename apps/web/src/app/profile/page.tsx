@@ -1,8 +1,9 @@
 "use client";
-import { SignedIn, SignedOut, SignInButton, UserProfile, useAuth } from "@clerk/nextjs";
-import { useEffect, useState } from "react";
+import { SignedIn, SignedOut, SignInButton, UserProfile } from "@clerk/nextjs";
+import { useState } from "react";
+import { useUser } from "@/features/users/hooks";
 
-const API = process.env.NEXT_PUBLIC_API_BASE_URL!;
+// Profile settings page using typed user hook
 
 export default function ProfilePage() {
   return (
@@ -30,43 +31,26 @@ export default function ProfilePage() {
 }
 
 function AppSettings() {
-  const {isSignedIn, getToken } = useAuth();
-  const [data, setData] = useState<any>(null);
+  const { user, update, loading, error } = useUser();
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isSignedIn) return;
-    (async () => {
-      const token = await getToken({ template: "fastapi" });
-      const res = await fetch(`${API}/users/me`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      setData(await res.json());
-    })();
-  }, [isSignedIn, getToken]);
-
-  if (!data?.user) return null;
-  const u = data.user;
+  if (loading && !user) return null;
+  if (!user) return null;
+  const u = user;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSaving(true); setMsg(null);
     const form = new FormData(e.currentTarget);
-    const payload = {
+    const ok = await update({
       display_name: form.get("display_name")?.toString() || null,
       bio: form.get("bio")?.toString() || null,
       is_profile_public: form.get("is_profile_public") === "on",
       show_email: form.get("show_email") === "on",
-    };
-    const token = await getToken({ template: "fastapi" });
-    const res = await fetch(`${API}/users/me`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      body: JSON.stringify(payload),
     });
     setSaving(false);
-    if (!res.ok) { setMsg("Save failed"); return; }
-    const j = await res.json();
-    setData({ user: { ...u, ...j.user } }); setMsg("Saved!");
+    setMsg(ok ? "Saved!" : "Save failed");
   }
 
   return (
@@ -95,6 +79,7 @@ function AppSettings() {
           {saving ? "Saving..." : "Save"}
         </button>
         {msg && <p className="text-sm">{msg}</p>}
+        {error && <p className="text-sm text-red-600">{error}</p>}
       </form>
     </section>
   );

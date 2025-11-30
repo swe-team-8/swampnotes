@@ -6,7 +6,7 @@ import uvicorn
 
 from .settings import settings
 from .db import engine
-from .routers import health, auth, files, users
+from .routers import health, files, users, courses, notes
 from .minio_client import create_bucket
 
 BUCKET_NAME = settings.MINIO_BUCKET
@@ -24,7 +24,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="SwampNotes API", lifespan=lifespan)
 
-# --- CORS ---
 # CORS setup for the Next.js dev server
 app.add_middleware(
     CORSMiddleware,
@@ -36,9 +35,10 @@ app.add_middleware(
 
 # Routers
 app.include_router(health.router, tags=["meta"])
-app.include_router(auth.router, tags=["auth"])
 app.include_router(files.router, tags=["files"])
 app.include_router(users.router)
+app.include_router(courses.router)
+app.include_router(notes.router)
 
 
 # Simple root so we won't (won't see 404 error at "/")

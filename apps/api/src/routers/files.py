@@ -3,8 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Body
 
 from .. import minio_client  # noqa: F401
-from ..deps import require_user
-from ..auth_clerk import TokenUser
+from ..deps import require_user, TokenUser
 from ..settings import settings
 from ..minio_client import (
     upload_to_minio,
@@ -13,7 +12,7 @@ from ..minio_client import (
     presign_put,
     presign_get,
 )
-from ..db import *
+from ..db import get_all_notes
 
 router = APIRouter(prefix="/notes", tags=["notes"])
 BUCKET_NAME = settings.MINIO_BUCKET
@@ -72,13 +71,17 @@ async def delete(filename: str, user: TokenUser = Depends(require_user)):
     res = delete_from_minio(filename, BUCKET_NAME)
     if res:
         return {"message": "File deleted"}
-    raise HTTPException(status_code=404, detail="File not found")\
+    raise HTTPException(status_code=404, detail="File not found")
 
 
 # Endpoint to get list of all notes provided certain query parameters
 @router.get("/getnotes/")
-async def get_notes(author: str = None, course: str = None, semester: str = None, user: TokenUser =
-Depends(require_user)):
+async def get_notes(
+    author: str = None,
+    course: str = None,
+    semester: str = None,
+    user: TokenUser = Depends(require_user),
+):
     matching_notes = []
     all_notes = get_all_notes()
     for note in all_notes:
