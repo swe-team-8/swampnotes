@@ -32,9 +32,9 @@ def create_bucket(bucket_name):
         s3.create_bucket(Bucket=bucket_name)
 
 
-def upload_to_minio(file, bucket_name):
+def upload_to_minio(file, filename, bucket_name):
     try:
-        s3.upload_fileobj(file.file, bucket_name, file.filename)
+        s3.upload_fileobj(io.BytesIO(file), bucket_name, filename)
         return True
     except ClientError as e:
         print(e)
