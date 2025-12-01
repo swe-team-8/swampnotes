@@ -20,7 +20,7 @@ from ..minio_client import (
     presign_put,
     presign_get,
 )
-from ..db import get_all_notes
+from ..db import get_all_notes, get_or_create_user, get_session
 from ..transcribe import transcribe_pdf
 
 router = APIRouter(prefix="/notes", tags=["notes"])
@@ -77,6 +77,12 @@ async def download_proxy(
     filename: str,
     user: TokenUser = Depends(require_user),
 ):
+    buyer = get_or_create_user(email=user.get("email"), sub=user.get("sub"), session=Depends(get_session))
+    note_price = 0
+    if buyer.points < note_price:
+        return {"Error": "Insufficient Funds"}
+    # TODO: REDUCE USER POINT COUNT HERE
+    # TODO: INCREASE SELLER POINT COUNT HERE (plus ~30% extra to add points to the market)
     filename = f"Notes/{author}/{filename}"
     content = download_from_minio(filename, BUCKET_NAME)
     if content:
@@ -116,7 +122,6 @@ async def get_notes(
 
 @router.get("/writereview")
 async def write_review(
-    review_author: str,
     note_author: str,
     note_name: str,
     rating: int,
@@ -124,6 +129,7 @@ async def write_review(
     user: TokenUser = Depends(require_user),
 ):
     # TODO: Save review to database after creating a new object
+
     pass
 
 
