@@ -24,6 +24,9 @@ s3 = boto3.client(
     ),
 )
 
+# Export s3 client as minio_client for compatibility
+minio_client = s3
+
 
 def create_bucket(bucket_name):
     try:
@@ -35,6 +38,23 @@ def create_bucket(bucket_name):
 def upload_to_minio(file, filename, bucket_name):
     try:
         s3.upload_fileobj(io.BytesIO(file), bucket_name, filename)
+        return True
+    except ClientError as e:
+        print(e)
+        return False
+
+
+def upload_bytes_to_minio(
+    data: bytes, filename: str, bucket_name: str, content_type: str = "application/pdf"
+) -> bool:
+    # Upload bytes directly to MinIO
+    try:
+        s3.upload_fileobj(
+            io.BytesIO(data),
+            bucket_name,
+            filename,
+            ExtraArgs={"ContentType": content_type},
+        )
         return True
     except ClientError as e:
         print(e)
@@ -61,6 +81,18 @@ def download_from_minio(filename, bucket_name):
         return None
 
 
+def get_file_from_minio(filename: str, bucket_name: str) -> io.BytesIO:
+    # Get file as BytesIO object (for custom streaming)
+    try:
+        fileobj = io.BytesIO()
+        s3.download_fileobj(bucket_name, filename, fileobj)
+        fileobj.seek(0)
+        return fileobj
+    except ClientError as e:
+        print(e)
+        return None
+
+
 # Presign URLs (grants temp access to a private object in the storage bucket)
 def presign_put(key: str, content_type: str, expires: int = 300) -> str:
     return s3.generate_presigned_url(
@@ -80,3 +112,10 @@ def presign_get(key: str, expires: int = 300) -> str:
         Params={"Bucket": settings.MINIO_BUCKET, "Key": key},
         ExpiresIn=expires,
     )
+
+
+# Ensure notes bucket exists on startup
+try:
+    create_bucket("notes")
+except Exception as e:
+    print(f"Warning: Could not create/verify notes bucket: {e}")

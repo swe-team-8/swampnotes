@@ -57,6 +57,9 @@ class Note(SQLModel, table=True):
     ratings: List["Rating"] = Relationship(back_populates="note")
     downloads: int = 0
     views: int = 0
+    price: int = Field(default=100)  # Points required to purchase
+    is_free: bool = Field(default=False)  # Allow free notes
+    purchases: List["Purchase"] = Relationship(back_populates="note")
 
 
 # Ratings object skeleton
@@ -70,3 +73,20 @@ class Rating(SQLModel, table=True):
 
     author: Optional[User] = Relationship()
     note: Optional[Note] = Relationship(back_populates="ratings")
+
+
+# Purchase object skeleton, tracks note purchases by users
+class Purchase(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    note_id: int = Field(foreign_key="note.id", index=True)
+    price_paid: int = Field(default=100)  # Points spent
+    purchased_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    # Relationships
+    user: Optional[User] = Relationship()
+    note: Optional[Note] = Relationship()
+
+    class Config:
+        # Prevent duplicate purchases
+        table_args = ({"schema": None},)

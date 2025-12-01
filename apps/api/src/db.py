@@ -1,9 +1,9 @@
 # skeleton database code
 from collections.abc import Generator
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 from sqlmodel import SQLModel, create_engine, Session, select  # noqa: F401
 from .settings import settings
-from .models import User, Note, Course
+from .models import User, Course, Note, Purchase
 
 engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
 
@@ -149,3 +149,110 @@ def purchase_note(
 
     updated_user = decrement_user_points(session, user_id=buyer_id, amount=cost)
     return updated_user, note
+
+
+# Get all notes a user has purchased
+def get_user_purchased_notes(session: Session, *, user_id: int) -> List[Note]:
+    stmt = (
+        select(Note)
+        .join(Purchase, Purchase.note_id == Note.id)
+        .where(Purchase.user_id == user_id)
+        .order_by(Purchase.purchased_at.desc())
+    )
+    return list(session.exec(stmt))
+
+
+# Get all notes a user has uploaded
+def get_user_uploaded_notes(session: Session, *, user_id: int) -> List[Note]:
+    stmt = (
+        select(Note).where(Note.author_id == user_id).order_by(Note.created_at.desc())
+    )
+    return list(session.exec(stmt))
+
+
+# Check if user already owns this note
+def has_purchased_note(session: Session, *, user_id: int, note_id: int) -> bool:
+    # Check if user already owns this note
+    stmt = select(Purchase).where(
+        Purchase.user_id == user_id, Purchase.note_id == note_id
+    )
+    return session.exec(stmt).first() is not None
+
+
+def create_purchase(
+    session: Session, *, user_id: int, note_id: int, price: int
+) -> Purchase:
+    # Record a note purchase (checks for duplicates)
+    # Check if already purchased
+    if has_purchased_note(session, user_id=user_id, note_id=note_id):
+        raise ValueError("Note already purchased")
+
+    # Get user and note
+    user = session.get(User, user_id)
+    note = session.get(Note, note_id)
+
+    if not user or not note:
+        raise ValueError("User or note not found")
+
+    # Check if user can afford it
+    if price > 0:
+        if user.points is None or user.points < price:
+            raise ValueError("Insufficient points")
+
+        # Deduct points from buyer
+        user.points -= price
+        session.add(user)
+
+    # Create purchase record
+    purchase = Purchase(user_id=user_id, note_id=note_id, price_paid=price)
+    session.add(purchase)
+
+    # Award points to note author (50% revenue share)
+    if price > 0:
+        author = session.get(User, note.author_id)
+        if author and author.id != user_id:  # Don't reward self-purchases
+            if author.points is None:
+                author.points = 0
+            author.points += int(price * 0.5)
+            session.add(author)
+
+    session.commit()
+    session.refresh(purchase)
+
+    return purchase
+
+
+def search_notes(
+    session: Session,
+    *,
+    query: Optional[str] = None,
+    course_id: Optional[int] = None,
+    semester: Optional[str] = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> List[Note]:
+    # Full-text search across notes with filters
+    stmt = select(Note)
+
+    if query:
+        # PostgreSQL full-text search (case-insensitive)
+        search_pattern = f"%{query}%"
+        stmt = stmt.where(
+            (Note.title.ilike(search_pattern))
+            | (Note.description.ilike(search_pattern))
+            | (Note.course_name.ilike(search_pattern))
+        )
+
+    if course_id:
+        stmt = stmt.where(Note.course_id == course_id)
+
+    if semester:
+        stmt = stmt.where(Note.semester == semester)
+
+    stmt = stmt.order_by(Note.created_at.desc()).offset(offset).limit(limit)
+    return list(session.exec(stmt))
+
+
+def get_all_courses(session: Session) -> List[Course]:
+    # Get all available courses for directory browsing
+    return list(session.exec(select(Course).order_by(Course.code)))
