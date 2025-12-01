@@ -93,6 +93,8 @@ def create_note(
     description: Optional[str] = None,
     object_key: Optional[str] = None,
     file_type: Optional[str] = None,
+    price: int = 100,
+    is_free: bool = False,
 ) -> Note:
     note = Note(
         author_id=author_id,
@@ -103,9 +105,11 @@ def create_note(
         description=description,
         object_key=object_key,
         file_type=file_type,
+        price=price if not is_free else 0,
+        is_free=is_free,
+        downloads=0,
+        views=0,
     )
-    note.downloads = 0
-    note.views = 0
     session.add(note)
     session.commit()
     session.refresh(note)

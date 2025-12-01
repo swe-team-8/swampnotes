@@ -18,6 +18,8 @@ export type Note = {
   downloads: number;
   views: number;
   created_at: string;
+  object_key?: string;
+  file_type?: string;
 };
 
 export type Course = {
@@ -25,6 +27,7 @@ export type Course = {
   code: string;
   title: string;
   school: string;
+  description?: string;
 };
 
 export type Purchase = {
@@ -33,6 +36,17 @@ export type Purchase = {
   note_id: number;
   price_paid: number;
   purchased_at: string;
+};
+
+export type User = {
+  id: number;
+  email: string;
+  clerk_id: string;
+  points: number;
+  role?: string;
+  is_admin: boolean;
+  preferred_school?: string;
+  preferred_semester?: string;
 };
 
 // Helper to build query string from params
@@ -81,6 +95,42 @@ export const notesApi = {
 
   getById: (noteId: number, token?: string) =>
     apiFetch<Note>(`/notes/${noteId}`, { auth: true, token }),
+
+  // Upload note using FormData (not apiFetch, that one needs multipart/form-data)
+  upload: async (formData: FormData, token: string) => {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/notes/upload`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      }
+    );
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Upload failed: ${res.status} ${text}`);
+    }
+    return (await res.json()) as Note;
+  },
+
+  // Download note, returns blob for file download
+  download: async (noteId: number, token: string) => {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/notes/${noteId}/download`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Download failed: ${res.status} ${text}`);
+    }
+    return await res.blob();
+  },
 };
 
 export const coursesApi = {
@@ -95,6 +145,23 @@ export const coursesApi = {
   ) =>
     apiFetch<Course>("/courses", {
       method: "POST",
+      auth: true,
+      token,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }),
+};
+
+export const usersApi = {
+  me: (token?: string) =>
+    apiFetch<User>("/users/me", { auth: true, token }),
+
+  updateProfile: (
+    data: { preferred_school?: string; preferred_semester?: string },
+    token?: string
+  ) =>
+    apiFetch<User>("/users/me", {
+      method: "PUT",
       auth: true,
       token,
       headers: { "Content-Type": "application/json" },

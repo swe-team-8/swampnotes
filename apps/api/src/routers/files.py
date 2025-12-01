@@ -3,158 +3,94 @@ from __future__ import annotations
 from fastapi import (
     APIRouter,
     Depends,
-    UploadFile,
-    File,
     HTTPException,
     Body,
-    BackgroundTasks,
 )
+from fastapi.responses import StreamingResponse
 
-from .. import minio_client  # noqa: F401
-from ..deps import require_user, TokenUser
-from ..settings import settings
-from ..minio_client import (
-    upload_to_minio,
-    download_from_minio,
+# Refactored files.py for pure file utility routes and generic file handling rather than note-specific logic
+# The note-specific logic now lives in routers/notes.py
+
+from ..deps import (
+    get_current_db_user,
+    User,
+    get_file_from_minio,
     delete_from_minio,
     presign_put,
     presign_get,
 )
-from ..db import get_all_notes, get_or_create_user, get_session
-from ..transcribe import transcribe_pdf
+from ..settings import settings
 
-router = APIRouter(prefix="/notes", tags=["notes"])
+router = APIRouter(prefix="/files", tags=["files"])
 BUCKET_NAME = settings.MINIO_BUCKET
 
-# Constants
-FILE_SIZE_LIMIT = 1e8  # (In Bytes, 1/10 of a gigabyte)
-ACCEPTABLE_TYPES = ["application/pdf", "text/plain"]
 
-
-# Proxy uploads (for dev purposes)
-# TODO: Add upload/download support for MULTIPLE image files
-@router.post("/upload")
-async def upload_proxy(
-    background_tasks: BackgroundTasks,  # This lets fastapi do work after sending a response.
-    file: UploadFile = File(...),
-    user: TokenUser = Depends(require_user),
+@router.get("/download/{bucket}/{object_key:path}")
+async def download_file(
+    bucket: str,
+    object_key: str,
+    current_user: User = Depends(get_current_db_user),
 ):
-    file.filename = f"Notes/{user.get('username')}/{file.filename}"
-
-    # File Restrictions
-    if file.size > FILE_SIZE_LIMIT:
-        raise HTTPException(status_code=413, detail="File size exceeds limit")
-    if file.content_type not in ACCEPTABLE_TYPES:
-        raise HTTPException(status_code=415, detail="Unsupported file type")
-
-    # Check if the file already exists
-    is_in_bucket = download_from_minio(
-        file.filename, BUCKET_NAME
-    )  # TODO: Replace this with something more efficient later on
-    if is_in_bucket:
-        raise HTTPException(
-            status_code=409, detail="File with the same name already exists"
-        )
-    file_contents = (
-        await file.read()
-    )  # This reads the file and stores the bytes, closes stream.
-    ok = True
-    upload_to_minio(file_contents, file.filename, BUCKET_NAME)
-    # TODO: Save the file metadata to the database.
-    if ok:
-        if file.content_type == "application/pdf":
-            background_tasks.add_task(
-                transcribe_pdf, raw_bytes=file_contents, filename=file.filename
-            )
-        return {"message": "Upload successful", "filename": file.filename}
-    raise HTTPException(status_code=500, detail="Upload failed")
-
-
-# Proxy downloads (for dev purposes)
-@router.get("/download/{author}/{filename}")
-async def download_proxy(
-    author: str,
-    filename: str,
-    user: TokenUser = Depends(require_user),
-):
-    buyer = get_or_create_user(email=user.get("email"), sub=user.get("sub"), session=Depends(get_session))
-    note_price = 0
-    if buyer.points < note_price:
-        return {"Error": "Insufficient Funds"}
-    # TODO: REDUCE USER POINT COUNT HERE
-    # TODO: INCREASE SELLER POINT COUNT HERE (plus ~30% extra to add points to the market)
-    filename = f"Notes/{author}/{filename}"
-    content = download_from_minio(filename, BUCKET_NAME)
+    """
+    Generic file download from MinIO
+    Use /notes/{note_id}/download for note downloads with ownership checks
+    """
+    content = get_file_from_minio(object_key, bucket)
     if content:
-        return content
+        return StreamingResponse(
+            content,
+            media_type="application/octet-stream",
+            headers={"Content-Disposition": f'attachment; filename="{object_key}"'},
+        )
     raise HTTPException(status_code=404, detail="File not found")
 
 
-@router.get("/delete/{filename}")
-async def delete(filename: str, user: TokenUser = Depends(require_user)):
-    filename = f"Notes/{user.get('username')}/{filename}"
-    res = delete_from_minio(filename, BUCKET_NAME)
+@router.delete("/{bucket}/{object_key:path}")
+async def delete_file(
+    bucket: str,
+    object_key: str,
+    current_user: User = Depends(get_current_db_user),
+):
+    """
+    Generic file deletion from MinIO (admin use)
+    For user note deletion, use DELETE /notes/{note_id} instead
+    """
+    # TODO: Add admin role check
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    res = delete_from_minio(object_key, bucket)
     if res:
-        return {"message": "File deleted"}
+        return {"message": "File deleted", "object_key": object_key}
     raise HTTPException(status_code=404, detail="File not found")
 
 
-# Endpoint to get list of all notes provided certain query parameters
-@router.get("/getnotes/")
-async def get_notes(
-    author: str = None,
-    course: str = None,
-    semester: str = None,
-    user: TokenUser = Depends(require_user),
-):
-    matching_notes = []
-    all_notes = get_all_notes()
-    for note in all_notes:
-        if author is not None and note.author != author:
-            continue
-        if course is not None and note.course_name != course:
-            continue
-        if semester is not None and note.semester != semester:
-            continue
-        matching_notes.append(note)
-    return {matching_notes}
-
-
-@router.get("/writereview")
-async def write_review(
-    note_author: str,
-    note_name: str,
-    rating: int,
-    description: str = "",
-    user: TokenUser = Depends(require_user),
-):
-    # TODO: Save review to database after creating a new object
-
-    pass
-
-
-# These functions will not be used unless we have time to implement them.
-
-
-# Presigned uploads (for browser -> minIO uploads)
-@router.post("/uploads/sign")
+@router.post("/presign-upload")
 def sign_upload(
     filename: str = Body(..., embed=True),
     content_type: str = Body(..., embed=True),
-    user: TokenUser = Depends(require_user),
+    bucket: str = Body("notes", embed=True),
+    current_user: User = Depends(get_current_db_user),
 ):
-    # Filter by user to avoid conflicts when sharing a bucket
-    key = f"users/{user['sub']}/{filename}"
+    """
+    Generate presigned URL for direct browser → MinIO upload
+    Large files/chunks should use this method instead of uploading via API
+    """
+    # Namespace by user to avoid conflicts
+    key = f"users/{current_user.id}/{filename}"
     url = presign_put(key, content_type=content_type, expires=300)
-    return {"uploadUrl": url, "objectKey": key}
+    return {"uploadUrl": url, "objectKey": key, "bucket": bucket, "expiresIn": 300}
 
 
-# Presigned downloads
-@router.get("/uploads/sign-get")
+@router.post("/presign-download")
 def sign_get(
-    key: str,
-    user: TokenUser = Depends(require_user),
+    object_key: str = Body(..., embed=True),
+    bucket: str = Body("notes", embed=True),
+    current_user: User = Depends(get_current_db_user),
 ):
-    # Validate ownership before signing (optional)
-    url = presign_get(key, expires=300)
-    return {"url": url}
+    """
+    Generate presigned URL for direct browser download from MinIO
+    Doesn't check ownership, use /notes/{note_id}/download for that
+    """
+    url = presign_get(object_key, expires=300, bucket_name=bucket)
+    return {"url": url, "expiresIn": 300}

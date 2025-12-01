@@ -2,8 +2,7 @@ from __future__ import annotations
 from typing import Optional
 from fastapi import APIRouter, Depends
 from sqlmodel import SQLModel, Session
-from ..deps import db_session, get_current_db_user
-from ..models import User
+from ..deps import db_session, get_current_db_user, User
 
 router = APIRouter(prefix="/users", tags=["users"])
 

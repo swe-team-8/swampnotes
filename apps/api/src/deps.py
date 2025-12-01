@@ -13,11 +13,40 @@ from .models import User
 # i.e. can cleanly give a router access to auth + jwt/database as necessary w/o messy imports
 
 # Re-export names from .auth
-from .auth import (
-    require_user,  # noqa: F401
-    optional_user,  # noqa: F401
-    require_admin,  # noqa: F401
-    TokenUser,  # noqa: F401
+from .auth import (  # noqa: F401
+    require_user,
+    optional_user,
+    require_admin,
+    TokenUser,
+)
+
+# Re-export commonly used models
+from .models import (  # noqa: F401
+    Note,
+    Course,
+    Purchase,
+)
+
+# Re-export commonly used DB functions
+from .db import (  # noqa: F401
+    create_note,
+    search_notes,
+    get_user_purchased_notes,
+    get_user_uploaded_notes,
+    create_purchase,
+    has_purchased_note,
+    create_course,
+    get_all_courses,
+    get_all_notes,
+)
+
+# Re-export MinIO functions
+from .minio_client import (  # noqa: F401
+    upload_bytes_to_minio,
+    get_file_from_minio,
+    delete_from_minio,
+    presign_put,
+    presign_get,
 )
 
 

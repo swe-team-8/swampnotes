@@ -2,12 +2,17 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 from pydantic import BaseModel
-
-from ..deps import db_session, require_admin_db
-from ..models import Course, User
-from ..db import create_course, get_all_courses
-from ..models import Note
 from typing import List
+
+from ..deps import (
+    db_session,
+    require_admin_db,
+    create_course,
+    get_all_courses,
+    User,
+    Course,
+    Note,
+)
 
 router = APIRouter(prefix="/courses", tags=["courses"])
 
