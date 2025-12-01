@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { SignedIn, SignedOut, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
+import { UserPoints } from "./user-points";
 
 export default function Header() {
   const { user } = useUser();
@@ -45,6 +46,7 @@ export default function Header() {
                   Admin
                 </Link>
               )}
+              <UserPoints />
               <UserButton
                 afterSignOutUrl="/"
                 userProfileMode="navigation"
