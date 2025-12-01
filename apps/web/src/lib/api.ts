@@ -131,6 +131,13 @@ export const notesApi = {
     }
     return await res.blob();
   },
+
+  incrementView: (noteId: number, token?: string) =>
+    apiFetch<{ views: number }>(`/notes/${noteId}/view`, {
+      method: "POST",
+      auth: true,
+      token,
+    }),
 };
 
 export const coursesApi = {

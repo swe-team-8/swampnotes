@@ -81,21 +81,18 @@ export default function UploadNotePage() {
 
             const note = await notesApi.upload(formData, token);
 
+            // Verify we got a valid note ID
+            if (!note || !note.id) {
+                throw new Error("Upload succeeded but received invalid response from server");
+            }
+
+            console.log("Upload successful, note ID:", note.id);
             setSuccess(`Upload complete! Note ID: ${note.id}`);
             
-            // Reset form
-            setSelectedFile(null);
-            setTitle("");
-            setSelectedCourse(null);
-            setSemester("");
-            setDescription("");
-            setPrice("100");
-            setIsFree(false);
-
-            // Redirect after 2 seconds
+            // Redirect to the note detail page
             setTimeout(() => {
-                router.push("/notes/uploaded");
-            }, 2000);
+                router.push(`/notes/${note.id}`);
+            }, 1500);
         } catch (e: unknown) {
             const message = e instanceof Error ? e.message : "Upload failed";
             setError(message);
@@ -227,6 +224,7 @@ export default function UploadNotePage() {
                     {success && (
                         <div className="text-sm text-green-600 bg-green-50 p-3 rounded-lg border border-green-200">
                             {success}
+                            <p className="mt-1 text-xs">Redirecting to note...</p>
                         </div>
                     )}
                 </div>

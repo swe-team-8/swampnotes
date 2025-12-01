@@ -5,6 +5,7 @@ from sqlmodel import Session, select, func
 from typing import Optional, List
 import uuid
 import logging
+from datetime import datetime
 
 from ..deps import (
     db_session,
@@ -26,6 +27,10 @@ from ..deps import (
 
 router = APIRouter(prefix="/notes", tags=["notes"])
 logger = logging.getLogger(__name__)
+
+# In-memory cache for view tracking
+_view_cache = {}
+VIEW_COOLDOWN_MINUTES = 5
 
 
 @router.post("/upload", response_model=Note)
@@ -190,20 +195,66 @@ def get_note_stats(session: Session = Depends(db_session)):
     }
 
 
-@router.get("/{note_id}", response_model=Note)
-def get_note_by_id(note_id: int, session: Session = Depends(db_session)):
-    # Get a single note by ID, public endpoint
+@router.get("/{note_id}")
+async def get_note(
+    note_id: int,
+    session: Session = Depends(db_session),
+    current_user: User = Depends(get_current_db_user),
+):
+    # Get a single note by ID, with no view increment (moved to separate endpoint)
     note = session.get(Note, note_id)
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
 
-    # Increment view count
-    note.views = (note.views or 0) + 1
-    session.add(note)
-    session.commit()
-    session.refresh(note)
+    # Return note
+    course = session.get(Course, note.course_id)
+    note_dict = {
+        "id": note.id,
+        "title": note.title,
+        "description": note.description,
+        "course_id": note.course_id,
+        "course_name": course.title if course else "Unknown",
+        "semester": note.semester,
+        "price": note.price,
+        "is_free": note.is_free,
+        "author_id": note.author_id,
+        "downloads": note.downloads or 0,
+        "views": note.views or 0,
+        "created_at": note.created_at.isoformat(),
+        "object_key": note.object_key,
+        "file_type": note.file_type,
+    }
+    return note_dict
 
-    return note
+
+@router.post("/{note_id}/view")
+async def increment_view(
+    note_id: int,
+    session: Session = Depends(db_session),
+    current_user: User = Depends(get_current_db_user),
+):
+    # Increment view count for a note (call once per page load)
+    note = session.get(Note, note_id)
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    # Don't count author's own views
+    if current_user.id != note.author_id:
+        cache_key = f"{current_user.id}:{note_id}"
+        last_view = _view_cache.get(cache_key)
+
+        # Only increment if not viewed recently
+        if (
+            not last_view
+            or (datetime.utcnow() - last_view).total_seconds()
+            > VIEW_COOLDOWN_MINUTES * 60
+        ):
+            note.views = (note.views or 0) + 1
+            session.add(note)
+            session.commit()
+            _view_cache[cache_key] = datetime.utcnow()
+
+    return {"views": note.views or 0}
 
 
 @router.post("/{note_id}/purchase", response_model=Purchase)

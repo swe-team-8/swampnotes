@@ -33,6 +33,9 @@ export default function NoteDetailPage() {
 
         setNote(noteData);
         setOwnership(ownershipData);
+
+        // Increment view count separately
+        notesApi.incrementView(noteId, token).catch(console.error);
       } catch (err) {
         console.error("Failed to load note:", err);
       }
@@ -146,7 +149,7 @@ export default function NoteDetailPage() {
                 disabled={downloading}
                 className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
-                {downloading ? "Downloading..." : "📥 Download PDF"}
+                {downloading ? "Downloading..." : "Download PDF"}
               </button>
             </div>
           ) : (
@@ -170,7 +173,7 @@ export default function NoteDetailPage() {
                 onClick={handlePurchase}
                 className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
-                {purchasing ? "Processing..." : "Purchase & Download"}
+                {purchasing ? "Processing..." : "Purchase Note"}
               </button>
             </div>
           )}
