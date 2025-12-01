@@ -2,17 +2,25 @@
 
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
+import { Inter } from "next/font/google";
 import Header from "./_components/header";
+import { PointsProvider } from "./_components/points-provider";
 
+const inter = Inter({ subsets: ["latin"] });
 
-// Clerk auth (testing code, change this later)
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <ClerkProvider>
       <html lang="en">
-        <body>
-          <Header />
-          {children}
+        <body className={inter.className}>
+          <PointsProvider>
+            <Header />
+            {children}
+          </PointsProvider>
         </body>
       </html>
     </ClerkProvider>

@@ -4,10 +4,12 @@ import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { notesApi, type Note } from "@/lib/api";
 import { useAuth } from "@clerk/nextjs";
+import { usePoints } from "@/app/_components/points-provider";
 
 export default function NoteDetailPage() {
   const params = useParams();
   const { getToken, isSignedIn } = useAuth();
+  const { refreshPoints } = usePoints();
   const noteId = parseInt(params.id as string);
 
   const [note, setNote] = useState<Note | null>(null);
@@ -61,6 +63,9 @@ export default function NoteDetailPage() {
       
       const newOwnership = await notesApi.checkOwnership(noteId, token);
       setOwnership(newOwnership);
+      
+      // Refresh points after successful purchase
+      await refreshPoints();
     } catch (err: any) {
       setError(err.message || "Purchase failed");
     } finally {
@@ -127,8 +132,8 @@ export default function NoteDetailPage() {
         </div>
 
         <div className="flex items-center gap-4 text-sm text-gray-600">
-          <span>👁 {note.views} views</span>
-          <span>⬇ {note.downloads} downloads</span>
+          <span>👁️ {note.views} views</span>
+          <span>⬇️ {note.downloads} downloads</span>
         </div>
 
         {note.description && (
