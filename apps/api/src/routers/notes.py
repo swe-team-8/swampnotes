@@ -1,6 +1,6 @@
 from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form, Depends
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response
 from sqlmodel import Session, select, func
 from typing import Optional, List
 import uuid
@@ -255,7 +255,7 @@ async def download_note(
     session: Session = Depends(db_session),
     current_user: User = Depends(get_current_db_user),
 ):
-    # Download a note file (requires ownership)
+    """Download a note file (requires ownership)"""
     note = session.get(Note, note_id)
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
@@ -266,7 +266,7 @@ async def download_note(
         session, user_id=current_user.id, note_id=note_id
     )
 
-    if not (is_owner or has_purchased_note_flag):
+    if not (is_owner or has_purchased_note_flag or note.is_free):
         raise HTTPException(
             status_code=403, detail="You must purchase this note to download it"
         )
@@ -288,10 +288,16 @@ async def download_note(
         session.add(note)
         session.commit()
 
-        return StreamingResponse(
-            file_data,
+        # Read the entire stream into memory
+        content = file_data.read()
+
+        return Response(
+            content=content,
             media_type="application/pdf",
-            headers={"Content-Disposition": f'attachment; filename="{note.title}.pdf"'},
+            headers={
+                "Content-Disposition": f'attachment; filename="{note.title}.pdf"',
+                "Content-Length": str(len(content)),
+            },
         )
     except Exception as e:
         raise HTTPException(

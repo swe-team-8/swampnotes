@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
+import { useState, useEffect } from "react";
 import { notesApi, type Note } from "@/lib/api";
+import { useAuth } from "@clerk/nextjs";
 
 export default function NoteDetailPage() {
   const params = useParams();
-  const { getToken } = useAuth();
+  const { getToken, isSignedIn } = useAuth();
   const noteId = parseInt(params.id as string);
 
   const [note, setNote] = useState<Note | null>(null);
@@ -17,6 +17,7 @@ export default function NoteDetailPage() {
     can_download: boolean;
   } | null>(null);
   const [purchasing, setPurchasing] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,6 +42,11 @@ export default function NoteDetailPage() {
   }, [noteId, getToken]);
 
   async function handlePurchase() {
+    if (!isSignedIn) {
+      window.location.href = "/sign-in";
+      return;
+    }
+
     setPurchasing(true);
     setError(null);
 
@@ -56,6 +62,50 @@ export default function NoteDetailPage() {
       setError(err.message || "Purchase failed");
     } finally {
       setPurchasing(false);
+    }
+  }
+
+  async function handleDownload() {
+    if (!isSignedIn) {
+      window.location.href = "/sign-in";
+      return;
+    }
+
+    if (!ownership?.can_download) {
+      setError("You must purchase this note to download it");
+      return;
+    }
+
+    setDownloading(true);
+    setError(null);
+
+    try {
+      const token = await getToken({ template: "fastapi" });
+      if (!token) throw new Error("Not authenticated");
+
+      // Use the API wrapper to download
+      const blob = await notesApi.download(noteId, token);
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${note?.title || "note"}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+
+      // Cleanup
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      // Refresh note to get updated download count
+      const updatedNote = await notesApi.getById(noteId, token);
+      setNote(updatedNote);
+    } catch (err: any) {
+      console.error("Download error:", err);
+      setError(err.message || "Failed to download note");
+    } finally {
+      setDownloading(false);
     }
   }
 
@@ -92,13 +142,11 @@ export default function NoteDetailPage() {
                 ✓ You own this note
               </p>
               <button
-                className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                onClick={() => {
-                  // Download logic - you'll need to implement file download endpoint
-                  window.open(`${process.env.NEXT_PUBLIC_API_BASE_URL}/notes/${noteId}/download`);
-                }}
+                onClick={handleDownload}
+                disabled={downloading}
+                className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
-                Download PDF
+                {downloading ? "Downloading..." : "📥 Download PDF"}
               </button>
             </div>
           ) : (
@@ -120,7 +168,7 @@ export default function NoteDetailPage() {
               <button
                 disabled={purchasing}
                 onClick={handlePurchase}
-                className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
                 {purchasing ? "Processing..." : "Purchase & Download"}
               </button>
