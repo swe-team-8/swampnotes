@@ -1,6 +1,6 @@
 # skeleton database code
 from collections.abc import Generator
-from typing import Optional
+from typing import Optional, Tuple
 from sqlmodel import SQLModel, create_engine, Session, select  # noqa: F401
 from .settings import settings
 from .models import User, Note, Course
@@ -33,6 +33,8 @@ def get_or_create_user(
     name: Optional[str] = None,
     avatar_url: Optional[str] = None,
     school: Optional[str] = None,
+    role: Optional[str] = None,
+    is_admin: Optional[bool] = None,
 ) -> User:
     # Prefer lookup by email; fallback to sub if provided
     stmt = select(User).where(User.email == email)
@@ -47,12 +49,25 @@ def get_or_create_user(
             user.avatar_url = avatar_url
         if school is not None:
             user.school = school
+        # Sync role and is_admin from JWT claims
+        if role is not None:
+            user.role = role
+        if is_admin is not None:
+            user.is_admin = is_admin
         session.add(user)
         session.commit()
         session.refresh(user)
         return user
 
-    user = User(email=email, sub=sub, name=name, avatar_url=avatar_url, school=school)
+    user = User(
+        email=email,
+        sub=sub,
+        name=name,
+        avatar_url=avatar_url,
+        school=school,
+        role=role,
+        is_admin=is_admin or False,
+    )
     session.add(user)
     session.commit()
     session.refresh(user)
@@ -95,3 +110,42 @@ def create_note(
     session.commit()
     session.refresh(note)
     return note
+
+
+# Subtract "amount" points from the user while preventing negative balances. Returns the updated user.
+def decrement_user_points(session: Session, *, user_id: int, amount: int) -> User:
+    if amount <= 0:
+        raise ValueError("amount must be > 0")
+
+    user = session.get(User, user_id)
+    if not user:
+        raise ValueError("User not found")
+
+    # We default points to 0 if null
+    if user.points is None:
+        user.points = 0
+
+    if user.points < amount:
+        raise ValueError("Insufficient points")
+
+    user.points -= amount
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+
+# Deduct points to 'purchase' a note. Returns (updated_user, note), with the new user state and purchase details.
+# Does not create a purchase record atm.
+def purchase_note(
+    session: Session, *, buyer_id: int, note_id: int, cost: int
+) -> Tuple[User, Note]:
+    if cost < 0:
+        raise ValueError("cost must be >= 0")
+
+    note = session.get(Note, note_id)
+    if not note:
+        raise ValueError("Note not found")
+
+    updated_user = decrement_user_points(session, user_id=buyer_id, amount=cost)
+    return updated_user, note

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, TypedDict
+from typing import Optional, TypedDict, Any
 
 from fastapi import Header, HTTPException, Depends, status
 from jwt import decode as jwt_decode, InvalidTokenError, PyJWKClient
@@ -14,6 +14,8 @@ class TokenUser(TypedDict, total=False):
     name: Optional[str]
     email: Optional[str]
     username: str
+    role: Optional[str]
+    is_admin: Optional[Any]
 
 
 # Caches JWK client across requests
@@ -42,11 +44,9 @@ def _get_jwk_client() -> PyJWKClient:
 async def get_current_user(
     authorization: str | None = Header(None),
 ) -> Optional[TokenUser]:
-    print(authorization)
     """
     Verify Clerk-issued RS256 JWT.
-    Returns claims (sub/email) or None if no Authorization header.
-    Should also raise 401 if an invalid bearer token is present
+    Returns claims dict with sub/email/name/role/is_admin or None if no Authorization header.
     """
     if not authorization or not authorization.lower().startswith("bearer "):
         return None
@@ -70,11 +70,14 @@ async def get_current_user(
             or claims.get("email_address")
             or claims.get("clerk_email")
         )
+        # Include role and is_admin from claims
         return {
             "sub": claims.get("sub", ""),
             "name": name,
             "email": email,
             "username": claims.get("username"),
+            "role": claims.get("role"),
+            "is_admin": claims.get("is_admin"),
         }
     except InvalidTokenError as e:
         raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
@@ -98,8 +101,43 @@ def optional_user(
 
 # This is a placeholder for role-based access control. When we have persistent roles in the DB, we can enforce 'admin' here
 def require_admin(current: TokenUser = Depends(require_user)) -> TokenUser:
-    # TODO: look up role in DB, 403 if not admin
+    """
+    Enforce admin access based on JWT claims: role or is_admin.
+    Allowed roles: admin, dev, developer, superadmin.
+    """
+    # Get raw claims from current user - we need to decode the token again to access custom claims
+    # Note: current is already validated by require_user, so we trust the sub/email
+    # We'll need to pass the full decoded claims through. For now, read from a request-scoped cache or re-decode.
+
+    # Simplified approach: assume you store full claims in get_current_user
+    # If not, you can refactor to return full claims dict and type narrow to TokenUser where needed
+
+    # For now, let's assume you modify get_current_user to return all claims
+    # and we check role/is_admin here:
+
+    role = current.get("role") or current.get("roles") or current.get("user_role")
+    is_admin_claim = current.get("is_admin")
+
+    allowed_roles = {"admin", "dev", "developer", "superadmin"}
+    has_role = isinstance(role, str) and role.strip().lower() in allowed_roles
+    has_admin_flag = _truthy(is_admin_claim)
+
+    if not (has_role or has_admin_flag):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required"
+        )
     return current
+
+
+def _truthy(val: Any) -> bool:
+    # Helper to interpret various truthy values from JWT claims.
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, (int, float)):
+        return val == 1
+    if isinstance(val, str):
+        return val.strip().lower() in {"1", "true", "yes", "y"}
+    return False
 
 
 # Export these names when auth_clerk.py is imported via wildcard (*)

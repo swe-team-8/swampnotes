@@ -53,12 +53,14 @@ export default function UploadNotePage() {
 		<div className="w-full min-h-screen flex justify-center items-center gap-8 py-16">
 
 			<div className="hidden md:flex w-1/4 justify-end">
-				<img
-					src=""
-					alt="Upload Note left side"
-					className="w-40 h-auto object-contain opacity-90"
-				/>
-			</div>
+                {false ? (
+                    <img
+                        src="/left.png"
+                        alt="Upload Note left side"
+                        className="w-40 h-auto object-contain opacity-90"
+                    />
+                ) : null}
+            </div>
 
 			<div className="max-w-md w-full space-y-6 bg-orange-50 p-10 pt-12 rounded-3xl shadow-lg border border-gray-200">
 				<h1 className="text-2xl font-semibold text-center">Upload Note</h1>
@@ -93,11 +95,13 @@ export default function UploadNotePage() {
 			</div>
 			
 			<div className="hidden md:flex w-1/4 justify-start">
+			{false ? (
 				<img
 				src="/right.png"
 				alt="Notebook right"
 				className="w-40 h-auto object-contain opacity-90"
 				/>
+			) : null}
 			</div>
 		</div>
 	);

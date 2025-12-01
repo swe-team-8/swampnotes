@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Optional
 from collections.abc import Generator
 
-from fastapi import Depends, Query  # noqa: F401
+from fastapi import Depends, HTTPException, status, Query
 from sqlmodel import Session
 
 from .db import get_session, get_or_create_user
@@ -34,7 +34,20 @@ def get_current_db_user(
         sub=token["sub"],
         email=token.get("email") or f"{token['sub']}@unknown.local",
         name=token.get("name"),
+        role=token.get("role"),
+        is_admin=_parse_is_admin(token.get("is_admin")),
     )
+
+
+# Convert various truthy values to bool
+def _parse_is_admin(val) -> bool:
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, (int, float)):
+        return val == 1
+    if isinstance(val, str):
+        return val.strip().lower() in {"1", "true", "yes", "y"}
+    return False
 
 
 # Pagination helper (for when we start dealing with the DB more)
@@ -51,3 +64,16 @@ def page(
     ),
 ) -> Page:
     return Page(limit=limit, cursor=cursor)
+
+
+# Enforce admin access based on DB role/is_admin
+def require_admin_db(current_user: User = Depends(get_current_db_user)) -> User:
+    allowed_roles = {"admin", "dev", "developer", "superadmin"}
+    has_role = current_user.role and current_user.role.lower() in allowed_roles
+    has_admin_flag = current_user.is_admin
+
+    if not (has_role or has_admin_flag):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required"
+        )
+    return current_user

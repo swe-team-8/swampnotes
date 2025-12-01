@@ -16,7 +16,8 @@ class User(SQLModel, table=True):
     name: Optional[str] = None
     avatar_url: Optional[str] = None
     school: Optional[str] = None
-    role: str = "student"  # student/tutor/admin
+    role: Optional[str] = Field(default=None, index=True)
+    is_admin: bool = Field(default=False)
 
     # App-specific profile settings
     display_name: Optional[str] = None
