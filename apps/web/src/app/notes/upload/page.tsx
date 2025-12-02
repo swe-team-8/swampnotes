@@ -112,7 +112,7 @@ export default function UploadNotePage() {
 
     return (
         <div className="w-full min-h-screen flex justify-center items-center gap-8 py-16">
-            <div className="max-w-md w-full space-y-6 bg-orange-50 p-10 pt-12 rounded-3xl shadow-lg border border-gray-200">
+            <div className="max-w-md w-full space-y-6 bg-[#f7f3e9] p-10 pt-12 rounded-3xl shadow-lg border border-gray-200">
                 <h1 className="text-2xl font-semibold text-center">Upload Note</h1>
 
                 <div className="space-y-4">
