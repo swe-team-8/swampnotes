@@ -19,6 +19,9 @@ export default function UploadNotePage() {
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const [showTranscriptionSettings, setShowTranscriptionSettings] = useState(false);
+    const [enableTranscription, setEnableTranscription] = useState(false);
+    const [autocorrectEnabled, setAutocorrectEnabled] = useState(false);
 
     useEffect(() => {
         async function loadCourses() {
@@ -196,6 +199,51 @@ export default function UploadNotePage() {
                             className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
                             disabled={uploading}
                         />
+                    </div>
+
+                    <div className="space-y-2">
+                         <button
+                            type="button"
+                            onClick={() => setShowTranscriptionSettings(!showTranscriptionSettings)}
+                            className="text-sm font-medium text-blue-600 hover:underline"
+                        >
+                            Transcription {showTranscriptionSettings ? "▲" : "▼"}
+                        </button>   
+                        {showTranscriptionSettings && (
+                            <div className="rounded-xl border border-gray-200 bg-white p-3 space-y-2 text-sm">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={enableTranscription}
+                                        onChange={(e) => {
+                                            const checked = e.target.checked;
+                                            setEnableTranscription(checked);
+                                            if (!checked) setAutocorrectEnabled(false);
+                                        }}
+                                        className="rounded"
+                                    />
+                                    <span>Generate transcription</span>
+                                </label>
+
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={autocorrectEnabled}
+                                        onChange={(e) => setAutocorrectEnabled(e.target.checked)}
+                                        className="rounded"
+                                        disabled={!enableTranscription}
+                                    />
+                                    <span>Autocorrect output</span>
+                                </label>
+
+                                {!enableTranscription && (
+                                    <p className="text-xs text-gray-500 pl-6">
+                                        Enable transcription to use autocorrect.
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
                     </div>
 
                     {selectedFile && (
