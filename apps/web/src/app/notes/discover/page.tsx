@@ -72,7 +72,7 @@ export default function DiscoverNotesPage() {
 
             <div className="space-y-1">
               <label className="text-sm font-medium text-gray-700">
-                Course Title 
+                Note Title
               </label>
               <input  
                 type="text"
