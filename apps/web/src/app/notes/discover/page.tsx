@@ -97,8 +97,6 @@ export default function DiscoverNotesPage() {
                 <option value="">
                   All Courses
                 </option>  
-
-                <option value="">All courses</option>
                 {courses.map((course) => (
                   <option key={course.id} value={course.id}>
                     {course.code} - {course.title}
