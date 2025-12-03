@@ -7,6 +7,7 @@ import uuid
 import logging
 from datetime import datetime
 
+from ..transcribe import transcribe_pdf
 from ..deps import (
     db_session,
     get_current_db_user,
@@ -45,7 +46,11 @@ async def upload_note(
     is_free: str = Form("false"),
     session: Session = Depends(db_session),
     current_user: User = Depends(get_current_db_user),
+    transcribed: str = Form("false"),
+    autocorrect: str = Form("false")
 ):
+    transcribed = transcribed == "true"
+    autocorrect = autocorrect == "true"
     # Upload a new note (authenticated users only)
     try:
         # Validate file type
@@ -80,6 +85,8 @@ async def upload_note(
 
         # Upload to MinIO first
         file_data = await file.read()
+        if transcribed:
+            file_data = transcribe_pdf(file_data, autocorrect)
         success = upload_bytes_to_minio(
             file_data, object_key, "notes", file.content_type
         )

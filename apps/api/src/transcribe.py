@@ -15,9 +15,12 @@ from fastapi import UploadFile
 from google.cloud import documentai_v1
 from google.api_core.client_options import ClientOptions
 from google.oauth2 import service_account
+from pdf_annotate import PdfAnnotator, Location, Appearance
+import fitz
 
 
-def transcribe_pdf(raw_bytes, filename):
+def transcribe_pdf(raw_bytes, autocorrect):
+    # Source for accessing the API: https://docs.cloud.google.com/document-ai/docs/send-request#documentai_process_document-python
     # TODO: Move these all to .env
     project_id = "document-ai-479801"
     processor_id = "f70206c200d81703"
@@ -28,39 +31,59 @@ def transcribe_pdf(raw_bytes, filename):
         "document-ai-479801-eeca2f70d17b.json"
     )
 
-    # Initialize Document AI client.
     client = documentai_v1.DocumentProcessorServiceClient(
         client_options=opts, credentials=credentials
     )
 
-    # Get the Fully-qualified Processor path.
     full_processor_name = client.processor_path(project_id, location, processor_id)
 
-    # Get a Processor reference.
     request = documentai_v1.GetProcessorRequest(name=full_processor_name)
     processor = client.get_processor(request=request)
 
-    # `processor.name` is the full resource name of the processor.
-    # For example: `projects/{project_id}/locations/{location}/processors/{processor_id}`
-    print(f"Processor Name: {processor.name}")
-
-    # Load binary data.
-    # For supported MIME types, refer to https://cloud.google.com/document-ai/docs/file-types
     raw_document = documentai_v1.RawDocument(
         content=raw_bytes,
         mime_type="application/pdf",
     )
 
-    # Send a request and get the processed document.
     request = documentai_v1.ProcessRequest(
         name=processor.name, raw_document=raw_document
     )
     result = client.process_document(request=request)
     document = result.document
 
-    # Read the text recognition output from the processor.
-    # For a full list of `Document` object attributes, reference this page:
-    # https://cloud.google.com/document-ai/docs/reference/rest/v1/Document
-    print("The document contains the following text:")
-    print(document.text)
+    for c in range(len(document.text)):
+        if ord(document.text[c]) > 256:
+            document.text = document.text[:c] + " " + document.text[c+1:]
+
+
+    with open("BUFFER.pdf", "wb") as pdf_file:
+        pdf_file.write(raw_bytes)
+
+    new_doc = PdfAnnotator("BUFFER.pdf")
+    for i, page in enumerate(document.pages):
+        pc1 = page.layout.bounding_poly.vertices[0]
+        pc2 = page.layout.bounding_poly.vertices[2]
+        height = abs(pc1.y-pc2.y)
+        new_doc.set_page_dimensions((abs(pc1.x-pc2.x), abs(pc1.y-pc2.y)), i)
+        for paragraph in page.paragraphs:
+            c1 = paragraph.layout.bounding_poly.vertices[0]
+            c2 = paragraph.layout.bounding_poly.vertices[2]
+            new_doc.add_annotation(
+                'square',
+                Location(x1=c1.x, y1=height-c1.y, x2=c2.x, y2=height-c2.y, page=i),
+                Appearance(fill=(1, 1, 1), stroke_width=0),
+            )
+            text_anchor = paragraph.layout.text_anchor
+            start_index = int(text_anchor.text_segments[0].start_index)
+            end_index = int(text_anchor.text_segments[0].end_index)
+            text = document.text[start_index:end_index].strip()
+            new_doc.add_annotation(
+                'text',
+                Location(x1=c1.x, y1=height-c1.y, x2=c2.x, y2=height-c2.y, page=i),
+                Appearance(content=text, fill=(0, 0, 0), font_size=abs(c1.y-c2.y)/2),
+            )
+    new_doc.write("BUFFER.pdf")
+    with open("BUFFER.pdf", "rb") as f:
+        return f.read()
     # TODO: Save the text and somehow give users access to it.
+

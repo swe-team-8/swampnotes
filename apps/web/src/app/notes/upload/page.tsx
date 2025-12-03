@@ -81,6 +81,8 @@ export default function UploadNotePage() {
             if (description) formData.append("description", description);
             formData.append("price", isFree ? "0" : price);
             formData.append("is_free", isFree.toString());
+            formData.append("transcribed", enableTranscription);
+            formData.append("autocorrect", autocorrectEnabled);
 
             const note = await notesApi.upload(formData, token);
 
